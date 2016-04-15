@@ -1,0 +1,6 @@
+rootProject.name = 'BluetoothSerialExample'
+
+include ':app'
+
+include ':react-native-bluetooth-serial'
+project(':react-native-bluetooth-serial').projectDir = new File(rootProject.projectDir, '../../android')
