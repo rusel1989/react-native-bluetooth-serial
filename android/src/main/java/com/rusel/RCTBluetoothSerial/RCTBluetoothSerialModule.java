@@ -11,10 +11,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Handler;
-import android.os.Message;
-import android.os.Looper;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.facebook.react.bridge.NativeModule;
@@ -32,36 +28,32 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     private BluetoothAdapter bluetoothAdapter;
     private RCTBluetoothSerialService bluetoothSerialService;
+    private final ReactApplicationContext _reactContext;
 
     // Debugging
     private static final String TAG = "BluetoothSerial";
     private static final boolean D = true;
 
-    // Message types sent from the RCTBluetoothSerialService Handler
+    // Message types sent from the RCTBluetoothSerialService
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
-    public static final int MESSAGE_TOAST = 5;
-    public static final int MESSAGE_READ_RAW = 6;
+    public static final int MESSAGE_CONN_SUCCESS = 4;
+    public static final int MESSAGE_CONN_FAILED = 5;
+    public static final int MESSAGE_CONN_LOST = 6;
 
+    // Other stuff
     private Promise mEnabledPromise;
+    private Promise mConnectedPromise;
     private static Boolean SUBSCRIBED = false;
-    private static Boolean SUBSCRIBED_RAW = false;
-    private final ReactApplicationContext _reactContext;
-
-    // Key names received from the BluetoothChatService Handler
-    public static final String DEVICE_NAME = "device_name";
-    public static final String TOAST = "toast";
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
-    StringBuffer buffer = new StringBuffer();
+    private StringBuffer buffer = new StringBuffer();
     private String delimiter;
-    private Handler mHandler;
 
     public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
         super(reactContext);
         _reactContext = reactContext;
-        createHandler();
+
         Log.d(TAG, "Bluetooth module started");
 
         if (bluetoothAdapter == null) {
@@ -69,7 +61,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         }
 
         if (bluetoothSerialService == null) {
-            bluetoothSerialService = new RCTBluetoothSerialService(mHandler);
+            bluetoothSerialService = new RCTBluetoothSerialService(this);
         }
     }
 
@@ -164,11 +156,10 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void connect(String id, boolean secure, Promise promise) {
+        mConnectedPromise = promise;
         BluetoothDevice device = bluetoothAdapter.getRemoteDevice(id);
-
         if (device != null) {
             bluetoothSerialService.connect(device, secure);
-            promise.resolve(true);
         } else {
             promise.reject("Could not connect to " + id);
         }
@@ -239,17 +230,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void subscribeRaw() {
-        SUBSCRIBED_RAW = true;
-    }
-
-    @ReactMethod
-    public void unsubscribeRaw() {
-        SUBSCRIBED_RAW = false;
-    }
-
-    @ReactMethod
-    public void setName(String newName) {
+    public void setAdapterName(String newName) {
         bluetoothAdapter.setName(newName);
     }
 
@@ -265,62 +246,33 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         return params;
     }
 
-    private void createHandler() {
-        Thread thread = new Thread() {
-            public void run() {
-                Looper.prepare();
-                final Handler mHandler = new Handler() {
-                    public void handleMessage(Message msg) {
-                        switch (msg.what) {
-                            case MESSAGE_READ:
-                                buffer.append((String)msg.obj);
-                                if (SUBSCRIBED) {
-                                    sendDataToSubscriber();
-                                }
-                                break;
-                            case MESSAGE_READ_RAW:
-                                if (SUBSCRIBED_RAW) {
-                                    byte[] bytes = (byte[]) msg.obj;
-                                    sendRawDataToSubscriber(bytes);
-                                }
-                                break;
-                            case MESSAGE_STATE_CHANGE:
-                                if(D) Log.i(TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                                switch (msg.arg1) {
-                                    case RCTBluetoothSerialService.STATE_CONNECTED:
-                                        Log.i(TAG, "RCTBluetoothSerialService.STATE_CONNECTED");
-                                        notifyConnectionSuccess();
-                                        break;
-                                    case RCTBluetoothSerialService.STATE_CONNECTING:
-                                        Log.i(TAG, "RCTBluetoothSerialService.STATE_CONNECTING");
-                                        break;
-                                    case RCTBluetoothSerialService.STATE_LISTEN:
-                                        Log.i(TAG, "RCTBluetoothSerialService.STATE_LISTEN");
-                                        break;
-                                    case RCTBluetoothSerialService.STATE_NONE:
-                                        Log.i(TAG, "RCTBluetoothSerialService.STATE_NONE");
-                                        break;
-                                }
-                                break;
-                            case MESSAGE_WRITE:
-                                //  byte[] writeBuf = (byte[]) msg.obj;
-                                //  String writeMessage = new String(writeBuf);
-                                //  Log.i(TAG, "Wrote: " + writeMessage);
-                                break;
-                            case MESSAGE_DEVICE_NAME:
-                                Log.i(TAG, msg.getData().getString(DEVICE_NAME));
-                                break;
-                            case MESSAGE_TOAST:
-                                String message = msg.getData().getString(TOAST);
-                                notifyConnectionLost(message);
-                                break;
-                        }
-                    }
-                };
-                Looper.loop();
-            }
-        };
-        thread.start();
+
+    public void receiveMessage(int msgType, String msg) {
+        if(D) Log.i(TAG, "MESSAGE: " + msg);
+        switch (msgType) {
+            case MESSAGE_CONN_SUCCESS:
+                notifyConnectionSuccess(msg);
+                break;
+            case MESSAGE_CONN_FAILED:
+                notifyConnectionFailed(msg);
+                break;
+            case MESSAGE_CONN_LOST:
+                notifyConnectionLost(msg);
+                break;
+            case MESSAGE_READ:
+                buffer.append((String)msg);
+                if (SUBSCRIBED == true) {
+                    sendDataToSubscriber();
+                }
+                break;
+            case MESSAGE_WRITE:
+                //  byte[] writeBuf = (byte[]) msg.obj;
+                //  String writeMessage = new String(writeBuf);
+                //  Log.i(TAG, "Wrote: " + writeMessage);
+                break;
+            case MESSAGE_STATE_CHANGE:
+                break;
+        }
     }
 
     private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
@@ -330,30 +282,24 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         .emit(eventName, params);
     }
 
-    private void notifyConnectionLost(String error) {
+    private void notifyConnectionSuccess(String msg) {
         WritableMap params = Arguments.createMap();
-        params.putString("error", error);
-        sendEvent(_reactContext, "connectionLost", params);
-    }
-
-    private void notifyConnectionSuccess() {
-        WritableMap params = Arguments.createMap();
-        params.putBoolean("connected", true);
-        sendEvent(_reactContext, "connectionSuccess", params);
-    }
-
-    private void sendRawDataToSubscriber(byte[] data) {
-        if (data != null && data.length > 0) {
-            try {
-                WritableMap params = Arguments.createMap();
-                String msg = new String(data, "UTF-8");
-                params.putString("data", msg);
-                sendEvent(_reactContext, "rawData", params);
-            } catch (UnsupportedEncodingException e) {
-                Log.d(TAG, "Error converting to string");
-            }
-
+        params.putString("message", msg);
+        if (mConnectedPromise != null) {
+            mConnectedPromise.resolve(params);
         }
+    }
+
+    private void notifyConnectionFailed(String msg) {
+        if (mConnectedPromise != null) {
+            mConnectedPromise.reject(msg);
+        }
+    }
+
+    private void notifyConnectionLost(String msg) {
+        WritableMap params = Arguments.createMap();
+        params.putString("message", msg);
+        sendEvent(_reactContext, "connectionLost", params);
     }
 
     private void sendDataToSubscriber() {

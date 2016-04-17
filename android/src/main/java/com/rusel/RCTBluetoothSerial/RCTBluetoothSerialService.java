@@ -10,9 +10,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.util.Log;
 
 /**
@@ -27,7 +24,7 @@ import android.util.Log;
 public class RCTBluetoothSerialService {
 
     // Debugging
-    private static final String TAG = "BluetoothSerial";
+    private static final String TAG = "BluetoothSerialService";
     private static final boolean D = true;
 
     // Name for the SDP record when creating server socket
@@ -43,44 +40,44 @@ public class RCTBluetoothSerialService {
 
     // Member fields
     private BluetoothAdapter mAdapter;
-    private Handler mHandler;
     private AcceptThread mSecureAcceptThread;
     private AcceptThread mInsecureAcceptThread;
     private ConnectThread mConnectThread;
     private ConnectedThread mConnectedThread;
-    private int mState;
+    private RCTBluetoothSerialModule mModule;
+    private String mState;
 
     // Constants that indicate the current connection state
-    public static final int STATE_NONE = 0;       // we're doing nothing
-    public static final int STATE_LISTEN = 1;     // now listening for incoming connections
-    public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
-    public static final int STATE_CONNECTED = 3;  // now connected to a remote device
+    public static final String STATE_NONE = "none";       // we're doing nothing
+    public static final String STATE_LISTEN = "listen";     // now listening for incoming connections
+    public static final String STATE_CONNECTING = "connecting"; // now initiating an outgoing connection
+    public static final String STATE_CONNECTED = "connected";  // now connected to a remote device
 
     /**
      * Constructor. Prepares a new RCTBluetoothSerialModule session.
      * @param handler  A Handler to send messages back to the UI Activity
      */
-    public RCTBluetoothSerialService(Handler handler) {
+    public RCTBluetoothSerialService(RCTBluetoothSerialModule module) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
-        mHandler = handler;
+        mModule = module;
     }
 
     /**
      * Set the current state of the chat connection
      * @param state  An integer defining the current connection state
      */
-    private synchronized void setState(int state) {
+    private synchronized void setState(String state) {
         if (D) Log.d(TAG, "setState() " + mState + " -> " + state);
         mState = state;
 
         // Give the new state to the Handler so the UI Activity can update
-        mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_STATE_CHANGE, state);
     }
 
     /**
      * Return the current connection state. */
-    public synchronized int getState() {
+    public synchronized String getState() {
         return mState;
     }
 
@@ -162,13 +159,7 @@ public class RCTBluetoothSerialService {
         mConnectedThread = new ConnectedThread(socket, socketType);
         mConnectedThread.start();
 
-        // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_DEVICE_NAME);
-        Bundle bundle = new Bundle();
-        bundle.putString(RCTBluetoothSerialModule.DEVICE_NAME, device.getName());
-        msg.setData(bundle);
-        mHandler.sendMessage(msg);
-
+        mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_CONN_SUCCESS, "Connected to " + device.getName());
         setState(STATE_CONNECTED);
     }
 
@@ -221,12 +212,8 @@ public class RCTBluetoothSerialService {
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
     private void connectionFailed() {
-        // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_TOAST);
-        Bundle bundle = new Bundle();
-        bundle.putString(RCTBluetoothSerialModule.TOAST, "Unable to connect to device");
-        msg.setData(bundle);
-        mHandler.sendMessage(msg);
+        // Send a failure message
+        mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_CONN_FAILED, "Unable to connect to device");
 
         // Start the service over to restart listening mode
         RCTBluetoothSerialService.this.start();
@@ -236,12 +223,8 @@ public class RCTBluetoothSerialService {
      * Indicate that the connection was lost and notify the UI Activity.
      */
     private void connectionLost() {
-        // Send a failure message back to the Activity
-        Message msg = mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_TOAST);
-        Bundle bundle = new Bundle();
-        bundle.putString(RCTBluetoothSerialModule.TOAST, "Device connection was lost");
-        msg.setData(bundle);
-        mHandler.sendMessage(msg);
+        // Send a failure message
+        mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_CONN_LOST, "Device connection was lost");
 
         // Start the service over to restart listening mode
         RCTBluetoothSerialService.this.start();
@@ -452,15 +435,15 @@ public class RCTBluetoothSerialService {
                     String data = new String(buffer, 0, bytes);
 
                     // Send the new data String to the UI Activity
-                    mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_READ, data).sendToTarget();
+                    mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_READ, data);
 
                     // Send the raw bytestream to the UI Activity.
                     // We make a copy because the full array can have extra data at the end
                     // when / if we read less than its size.
-                    if (bytes > 0) {
-                        byte[] rawdata = Arrays.copyOf(buffer, bytes);
-                        mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_READ_RAW, rawdata).sendToTarget();
-                    }
+                    //if (bytes > 0) {
+                    //    byte[] rawdata = Arrays.copyOf(buffer, bytes);
+                    //    mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_READ_RAW, rawdata);
+                    //}
 
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
@@ -481,7 +464,7 @@ public class RCTBluetoothSerialService {
                 mmOutStream.write(buffer);
 
                 // Share the sent message back to the UI Activity
-                mHandler.obtainMessage(RCTBluetoothSerialModule.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
+                //mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_WRITE, buffer);
 
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);

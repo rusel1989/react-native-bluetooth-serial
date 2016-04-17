@@ -30,8 +30,8 @@ class BluetoothSerialExample extends Component {
    */
   connect (id) {
     BluetoothSerial.connect(id, false)
-    .then((connected) => alert(`Connected to id ${id}`))
-    .catch((err) => alert(`Error conencting to device, ${err}`))
+    .then((res) => alert(res.message))
+    .catch((err) => alert(err))
   }
 
   render () {
