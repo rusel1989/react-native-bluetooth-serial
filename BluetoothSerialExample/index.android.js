@@ -20,8 +20,17 @@ class BluetoothSerialExample extends Component {
   }
 
   componentDidMount () {
-    BluetoothSerial.discoverUnpairedDevices()
+    BluetoothSerial.list()
     .then((devices) => this.setState({ devices }))
+  }
+
+  discoverUnpaired () {
+    BluetoothSerial.discoverUnpairedDevices()
+    .then((unpairedDevices) => {
+      const devices = this.state.devices
+      unpairedDevices.forEach((device) => devices.push(device))
+      this.setState({ devices })
+    })
   }
 
   /**
@@ -37,16 +46,19 @@ class BluetoothSerialExample extends Component {
   render () {
     return (
       <View style={styles.container}>
-        <Text>Unpaired devices</Text>
-        <View style={{ borderColor: '#eee', borderTopWidth: 0.5 }}>
+        <Text>Bluetooth devices</Text>
+        <View style={styles.listContainer}>
           {this.state.devices.map((device, i) => {
             return (
-              <TouchableOpacity style={styles.button} onPress={this.connect.bind(this, device.id)}>
+              <TouchableOpacity style={styles.listItem} onPress={this.connect.bind(this, device.id)}>
                 <Text>{`${device.name}<${device.address}>`}</Text>
               </TouchableOpacity>
             )
           })}
         </View>
+        <TouchableOpacity style={styles.button} onPress={this.discoverUnpaired.bind(this)}>
+          <Text style={{ color: '#fff' }}>Discover unpaired devices</Text>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -59,10 +71,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F5FCFF'
   },
-  button: {
+  listContainer: {
+    borderColor: '#ccc',
+    borderTopWidth: 0.5
+  },
+  listItem: {
     paddingHorizontal: 25,
-    borderColor: '#eee',
+    borderColor: '#ccc',
     borderBottomWidth: 0.5
+  },
+  button: {
+    backgroundColor: '#4C4C4C'
   }
 })
 
