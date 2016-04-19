@@ -67,7 +67,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-        return "BluetoothSerial";
+        return "RCTBluetoothSerial";
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
