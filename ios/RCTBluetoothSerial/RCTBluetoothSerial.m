@@ -34,6 +34,13 @@ RCT_EXPORT_MODULE();
     return self;
 }
 
+- (dispatch_queue_t)methodQueue
+{
+    // run all module methods in main thread
+    // if we don't no timer callbacks got called
+    return dispatch_get_main_queue();
+}
+
 #pragma mark - Methods available form Javascript
 
 RCT_EXPORT_METHOD(connect:(NSString *)uuid
@@ -118,10 +125,10 @@ RCT_EXPORT_METHOD(write:(NSData *)data
     }
 }
 
-RCT_EXPORT_METHOD(list:(RCTPromiseResolveBlock)resolve)
+RCT_EXPORT_METHOD(list:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     [self scanForBLEPeripherals:3];
-    
     [NSTimer scheduledTimerWithTimeInterval:(float)3.0
                                      target:self
                                    selector:@selector(listPeripheralsTimer:)
@@ -129,7 +136,8 @@ RCT_EXPORT_METHOD(list:(RCTPromiseResolveBlock)resolve)
                                     repeats:NO];
 }
 
-RCT_EXPORT_METHOD(isEnabled:(RCTPromiseResolveBlock)resolve)
+RCT_EXPORT_METHOD(isEnabled:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     // short delay so CBCentralManger can spin up bluetooth
     [NSTimer scheduledTimerWithTimeInterval:(float)0.2
@@ -140,7 +148,8 @@ RCT_EXPORT_METHOD(isEnabled:(RCTPromiseResolveBlock)resolve)
     
 }
 
-RCT_EXPORT_METHOD(isConnected:(RCTPromiseResolveBlock)resolve)
+RCT_EXPORT_METHOD(isConnected:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     if (_bleShield.isConnected) {
         resolve((id)kCFBooleanTrue);
@@ -149,14 +158,16 @@ RCT_EXPORT_METHOD(isConnected:(RCTPromiseResolveBlock)resolve)
     }
 }
 
-RCT_EXPORT_METHOD(available:(RCTPromiseResolveBlock)resolve)
+RCT_EXPORT_METHOD(available:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     // future versions could use messageAsNSInteger, but realistically, int is fine for buffer length
     NSNumber *buffLen = [NSNumber numberWithInteger:[_buffer length]];
     resolve(buffLen);
 }
 
-RCT_EXPORT_METHOD(read:(RCTPromiseResolveBlock)resolve)
+RCT_EXPORT_METHOD(read:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     NSString *message = @"";
     
@@ -171,7 +182,8 @@ RCT_EXPORT_METHOD(read:(RCTPromiseResolveBlock)resolve)
 }
 
 RCT_EXPORT_METHOD(readUntil:(NSString *)delimiter
-                  resolver:(RCTPromiseResolveBlock)resolve)
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejector:(RCTPromiseRejectBlock)reject)
 {
     NSString *message = [self readUntilDelimiter:delimiter];
     resolve(message);
