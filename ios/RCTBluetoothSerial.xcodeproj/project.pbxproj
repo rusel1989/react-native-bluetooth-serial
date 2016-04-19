@@ -1,0 +1,272 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		69CA06071CC43C2900AF6479 /* RCTBluetoothSerial.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 69CA06061CC43C2900AF6479 /* RCTBluetoothSerial.h */; };
+		69CA06091CC43C2900AF6479 /* RCTBluetoothSerial.m in Sources */ = {isa = PBXBuildFile; fileRef = 69CA06081CC43C2900AF6479 /* RCTBluetoothSerial.m */; };
+		69CA06161CC49D5E00AF6479 /* BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = 69CA06101CC49D5E00AF6479 /* BLE.m */; };
+		69CA06171CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.m in Sources */ = {isa = PBXBuildFile; fileRef = 69CA06131CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.m */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		69CA06011CC43C2900AF6479 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+				69CA06071CC43C2900AF6479 /* RCTBluetoothSerial.h in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		69CA06031CC43C2900AF6479 /* libRCTBluetoothSerial.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTBluetoothSerial.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		69CA06061CC43C2900AF6479 /* RCTBluetoothSerial.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTBluetoothSerial.h; sourceTree = "<group>"; };
+		69CA06081CC43C2900AF6479 /* RCTBluetoothSerial.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTBluetoothSerial.m; sourceTree = "<group>"; };
+		69CA060F1CC49D5E00AF6479 /* BLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLE.h; sourceTree = "<group>"; };
+		69CA06101CC49D5E00AF6479 /* BLE.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BLE.m; sourceTree = "<group>"; };
+		69CA06111CC49D5E00AF6479 /* BLEDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLEDefines.h; sourceTree = "<group>"; };
+		69CA06121CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CBPeripheral+BTSExtensions.h"; sourceTree = "<group>"; };
+		69CA06131CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "CBPeripheral+BTSExtensions.m"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		69CA06001CC43C2900AF6479 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		69CA05FA1CC43C2900AF6479 = {
+			isa = PBXGroup;
+			children = (
+				69CA06051CC43C2900AF6479 /* RCTBluetoothSerial */,
+				69CA06041CC43C2900AF6479 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		69CA06041CC43C2900AF6479 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				69CA06031CC43C2900AF6479 /* libRCTBluetoothSerial.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		69CA06051CC43C2900AF6479 /* RCTBluetoothSerial */ = {
+			isa = PBXGroup;
+			children = (
+				69CA060F1CC49D5E00AF6479 /* BLE.h */,
+				69CA06101CC49D5E00AF6479 /* BLE.m */,
+				69CA06111CC49D5E00AF6479 /* BLEDefines.h */,
+				69CA06121CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.h */,
+				69CA06131CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.m */,
+				69CA06061CC43C2900AF6479 /* RCTBluetoothSerial.h */,
+				69CA06081CC43C2900AF6479 /* RCTBluetoothSerial.m */,
+			);
+			path = RCTBluetoothSerial;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		69CA06021CC43C2900AF6479 /* RCTBluetoothSerial */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 69CA060C1CC43C2900AF6479 /* Build configuration list for PBXNativeTarget "RCTBluetoothSerial" */;
+			buildPhases = (
+				69CA05FF1CC43C2900AF6479 /* Sources */,
+				69CA06001CC43C2900AF6479 /* Frameworks */,
+				69CA06011CC43C2900AF6479 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RCTBluetoothSerial;
+			productName = RCTBluetoothSerial;
+			productReference = 69CA06031CC43C2900AF6479 /* libRCTBluetoothSerial.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		69CA05FB1CC43C2900AF6479 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0730;
+				ORGANIZATIONNAME = "Jakub Martyčák";
+				TargetAttributes = {
+					69CA06021CC43C2900AF6479 = {
+						CreatedOnToolsVersion = 7.3;
+					};
+				};
+			};
+			buildConfigurationList = 69CA05FE1CC43C2900AF6479 /* Build configuration list for PBXProject "RCTBluetoothSerial" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 69CA05FA1CC43C2900AF6479;
+			productRefGroup = 69CA06041CC43C2900AF6479 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				69CA06021CC43C2900AF6479 /* RCTBluetoothSerial */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		69CA05FF1CC43C2900AF6479 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				69CA06091CC43C2900AF6479 /* RCTBluetoothSerial.m in Sources */,
+				69CA06161CC49D5E00AF6479 /* BLE.m in Sources */,
+				69CA06171CC49D5E00AF6479 /* CBPeripheral+BTSExtensions.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		69CA060A1CC43C2900AF6479 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		69CA060B1CC43C2900AF6479 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		69CA060D1CC43C2900AF6479 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../react-native/React/**";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		69CA060E1CC43C2900AF6479 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/../../react-native/React/**";
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		69CA05FE1CC43C2900AF6479 /* Build configuration list for PBXProject "RCTBluetoothSerial" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				69CA060A1CC43C2900AF6479 /* Debug */,
+				69CA060B1CC43C2900AF6479 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		69CA060C1CC43C2900AF6479 /* Build configuration list for PBXNativeTarget "RCTBluetoothSerial" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				69CA060D1CC43C2900AF6479 /* Debug */,
+				69CA060E1CC43C2900AF6479 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 69CA05FB1CC43C2900AF6479 /* Project object */;
+}
