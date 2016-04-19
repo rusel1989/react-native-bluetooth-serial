@@ -179,59 +179,63 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public int available() {
-        return buffer.length();
+    public void available(Promise promise) {
+        promise.resolve(buffer.length());
     }
 
     @ReactMethod
-    public String read() {
+    public void read(Promise promise) {
         int length = buffer.length();
         String data = buffer.substring(0, length);
         buffer.delete(0, length);
-        return data;
+        promise.resolve(data);
     }
 
     @ReactMethod
-    public String readUntil(String c) {
+    public void readUntil(String c, Promise promise) {
         String data = "";
         int index = buffer.indexOf(c, 0);
         if (index > -1) {
             data = buffer.substring(0, index + c.length());
             buffer.delete(0, index + c.length());
         }
-        return data;
+        promise.resolve(data);
     }
 
     @ReactMethod
-    public Boolean isEnabled() {
-        return bluetoothAdapter.isEnabled();
+    public void isEnabled(Promise promise) {
+        promise.resolve(bluetoothAdapter.isEnabled());
     }
 
     @ReactMethod
-    public Boolean isConnected() {
-        return bluetoothSerialService.getState() == RCTBluetoothSerialService.STATE_CONNECTED;
+    public Boolean isConnected(Promise promise) {
+        promise.resolve(bluetoothSerialService.getState() == RCTBluetoothSerialService.STATE_CONNECTED);
     }
 
     @ReactMethod
-    public void clear() {
+    public void clear(Promise promise) {
         buffer.setLength(0);
+        promise.resolve(true)
     }
 
     @ReactMethod
-    public void subscribe(String delimiter) {
+    public void subscribe(String delimiter, Promise promise) {
         delimiter = delimiter;
         SUBSCRIBED = true;
+        promise.resolve(true)
     }
 
     @ReactMethod
-    public void unsubscribe() {
+    public void unsubscribe(Promise promise) {
         delimiter = null;
         SUBSCRIBED = false;
+        promise.resolve(true)
     }
 
     @ReactMethod
-    public void setAdapterName(String newName) {
+    public void setAdapterName(String newName, Promise promise) {
         bluetoothAdapter.setName(newName);
+        promise.resolve(true)
     }
 
     // Private methods
