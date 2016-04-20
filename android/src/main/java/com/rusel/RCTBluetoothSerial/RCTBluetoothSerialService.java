@@ -199,6 +199,8 @@ public class RCTBluetoothSerialService {
     public void write(byte[] out) {
         // Create temporary object
         ConnectedThread r;
+        Log.d(TAG, "Write in service, state is " + STATE_CONNECTED);
+
         // Synchronize a copy of the ConnectedThread
         synchronized (this) {
             if (mState != STATE_CONNECTED) return;
@@ -461,6 +463,8 @@ public class RCTBluetoothSerialService {
          */
         public void write(byte[] buffer) {
             try {
+                String str = new String(buffer, "UTF-8");
+                Log.d(TAG, "Write in thread " + str);
                 mmOutStream.write(buffer);
 
                 // Share the sent message back to the UI Activity

@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
+import android.util.Base64;
 
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -173,7 +174,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void write(String message, Promise promise) {
-        byte[] data = message.getBytes();
+        Log.d(TAG, "Write " + message);
+        byte[] data = Base64.decode(message, Base64.DEFAULT);
         bluetoothSerialService.write(data);
         promise.resolve(true);
     }
@@ -193,12 +195,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void readUntil(String c, Promise promise) {
-        String data = "";
-        int index = buffer.indexOf(c, 0);
-        if (index > -1) {
-            data = buffer.substring(0, index + c.length());
-            buffer.delete(0, index + c.length());
-        }
+        String data = readUntil(c);
         promise.resolve(data);
     }
 
@@ -208,34 +205,34 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public Boolean isConnected(Promise promise) {
+    public void isConnected(Promise promise) {
         promise.resolve(bluetoothSerialService.getState() == RCTBluetoothSerialService.STATE_CONNECTED);
     }
 
     @ReactMethod
     public void clear(Promise promise) {
         buffer.setLength(0);
-        promise.resolve(true)
+        promise.resolve(true);
     }
 
     @ReactMethod
     public void subscribe(String delimiter, Promise promise) {
         delimiter = delimiter;
         SUBSCRIBED = true;
-        promise.resolve(true)
+        promise.resolve(true);
     }
 
     @ReactMethod
     public void unsubscribe(Promise promise) {
         delimiter = null;
         SUBSCRIBED = false;
-        promise.resolve(true)
+        promise.resolve(true);
     }
 
     @ReactMethod
     public void setAdapterName(String newName, Promise promise) {
         bluetoothAdapter.setName(newName);
-        promise.resolve(true)
+        promise.resolve(true);
     }
 
     // Private methods
@@ -304,6 +301,16 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         WritableMap params = Arguments.createMap();
         params.putString("message", msg);
         sendEvent(_reactContext, "connectionLost", params);
+    }
+
+    private String readUntil(String c) {
+        String data = "";
+        int index = buffer.indexOf(c, 0);
+        if (index > -1) {
+            data = buffer.substring(0, index + c.length());
+            buffer.delete(0, index + c.length());
+        }
+        return data;
     }
 
     private void sendDataToSubscriber() {
