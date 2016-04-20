@@ -5,25 +5,35 @@ import React, {
   TouchableOpacity,
   View,
   NativeModules,
-  Platform
+  Platform,
+  Switch
 } from 'react-native'
 
 const BluetoothSerial = NativeModules.BluetoothSerial
+
+const Button = ({ label, onPress }) =>
+  <TouchableOpacity style={styles.button} onPress={onPress}>
+    <Text style={{ color: '#fff' }}>{label}</Text>
+  </TouchableOpacity>
 
 class BluetoothSerialExample extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      discovering: true,
+      discovering: false,
       devices: [],
       conencted: false
     }
   }
 
-  componentDidMount () {
-    BluetoothSerial.list()
-    .then((devices) => {
-      this.setState({ devices })
+  componentWillMount () {
+    Promise.all([
+      BluetoothSerial.isEnabled(),
+      BluetoothSerial.list()
+    ])
+    .then((values) => {
+      const [ isEnabled, devices ] = values
+      this.setState({ isEnabled, devices })
     })
   }
 
@@ -31,22 +41,67 @@ class BluetoothSerialExample extends Component {
    * Discover unpaired devices, works only in android
    */
   discoverUnpaired () {
-    BluetoothSerial.discoverUnpairedDevices()
-    .then((unpairedDevices) => {
-      const devices = this.state.devices
-      unpairedDevices.forEach((device) => devices.push(device))
-      this.setState({ devices })
-    })
+    if (this.state.discovering) {
+      return false
+    } else {
+      this.setState({ discovering: true })
+      BluetoothSerial.discoverUnpairedDevices()
+      .then((unpairedDevices) => {
+        const devices = this.state.devices
+        const deviceIds = devices.map((d) => d.id)
+        unpairedDevices.forEach((device) => {
+          if (deviceIds.indexOf(device.id) < 0) {
+            devices.push(device)
+          }
+        })
+        this.setState({ devices, discovering: false })
+      })
+    }
   }
 
   /**
    * Connect to bluetooth device by id
-   * @param  {String} id Device id
+   * @param  {Object} device
    */
-  connect (id) {
-    BluetoothSerial.connect(id)
+  connect (device) {
+    this.setState({ connecting: true })
+    BluetoothSerial.connect(device.id)
     .then((res) => {
       alert(res.message)
+      this.setState({ device, connected: true, connecting: false })
+    })
+    .catch((err) => alert(err))
+  }
+
+  /**
+   * Disconnect from bluetooth device
+   */
+  disconnect () {
+    this.setState({ connected: false })
+    BluetoothSerial.disconnect()
+    .catch((err) => alert(err))
+  }
+
+  toggleConnect (value) {
+    if (value === true && this.state.device) {
+      this.connect(this.state.device)
+    } else {
+      this.disconnect()
+    }
+  }
+
+  /**
+   * Write message to device
+   * @param  {String} message
+   */
+  write (message) {
+    if (!this.state.connected) {
+      alert('You must connect to device first')
+    }
+
+    BluetoothSerial.write(message)
+    .then((res) => {
+      alert('Successfuly wrote to device')
       this.setState({ connected: true })
     })
     .catch((err) => alert(err))
@@ -56,24 +111,58 @@ class BluetoothSerialExample extends Component {
     return (
       <View style={styles.container}>
         <Text style={styles.heading}>Bluetooth Serial Example</Text>
-        <Text>Bluetooth devices</Text>
+        {this.state.isEnabled === false
+        ? (
+          <View style={{ backgroundColor: '#ff6523' }}>
+            <Text style={[styles.connectionInfo, { color: '#fff', alignSelf: 'center' }]}>
+              ! Please enable bluetooth !
+            </Text>
+          </View>
+        ) : null}
+        <View style={styles.connectionInfoWrapper}>
+          <View>
+            <Switch
+              onValueChange={this.toggleConnect.bind(this)}
+              disabled={!this.state.device}
+              value={this.state.connected || this.state.connecting}/>
+          </View>
+          <View>
+            {this.state.connected
+            ? (
+              <Text style={styles.connectionInfo}>
+                ✓ Connected to {this.state.device.name}
+              </Text>
+            ) : (
+              <Text style={[styles.connectionInfo, { color: '#ff6523' }]}>
+                ✗ Not connected to any device
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <Text style={{ alignSelf: 'center' }}>Bluetooth devices</Text>
         <View style={styles.listContainer}>
           {this.state.devices.map((device, i) => {
             return (
-              <TouchableOpacity style={styles.listItem} onPress={this.connect.bind(this, device.id)}>
-                <Text>{`${device.name}<${device.id}>`}</Text>
+              <TouchableOpacity key={`${device.id}_${i}`} style={styles.listItem} onPress={this.connect.bind(this, device)}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontWeight: 'bold' }}>{device.name}</Text>
+                  <Text>{`<${device.id}>`}</Text>
+                </View>
               </TouchableOpacity>
             )
           })}
         </View>
-        <View>
+        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
           {Platform.OS === 'android'
-            ? (
-              <TouchableOpacity style={styles.button} onPress={this.discoverUnpaired.bind(this)}>
-                <Text style={{ color: '#fff' }}>Discover unpaired devices</Text>
-              </TouchableOpacity>
-            ) : null}
-
+          ? (
+            <Button
+              label={this.state.discovering ? '... Discovering' : 'Discover devices'}
+              onPress={this.discoverUnpaired.bind(this)} />
+          ) : null}
+          <Button
+            label='Write to device'
+            onPress={this.write.bind(this, 'test')} />
         </View>
       </View>
     )
@@ -83,23 +172,40 @@ class BluetoothSerialExample extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     backgroundColor: '#F5FCFF'
   },
   heading: {
     fontWeight: 'bold',
-    fontSize: 24
+    fontSize: 24,
+    marginVertical: 10,
+    alignSelf: 'center'
+  },
+  connectionInfoWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 25
+  },
+  connectionInfo: {
+    fontWeight: 'bold',
+    alignSelf: 'center',
+    fontSize: 18,
+    marginVertical: 10,
+    color: '#238923'
   },
   listContainer: {
+    marginTop: 15,
     borderColor: '#ccc',
     borderTopWidth: 0.5
   },
   listItem: {
+    flex: 1,
     padding: 25,
     borderColor: '#ccc',
     borderBottomWidth: 0.5
   },
   button: {
+    margin: 5,
     padding: 25,
     backgroundColor: '#4C4C4C'
   }
