@@ -40,7 +40,7 @@ class BluetoothSerialExample extends Component {
    * @param  {String} id Device id
    */
   connect (id) {
-    BluetoothSerial.connect(id, false)
+    BluetoothSerial.connect(id)
     .then((res) => alert(res.message))
     .catch((err) => alert(err))
   }
