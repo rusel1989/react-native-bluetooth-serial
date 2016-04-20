@@ -15,7 +15,8 @@ class BluetoothSerialExample extends Component {
     super(props)
     this.state = {
       discovering: true,
-      devices: []
+      devices: [],
+      conencted: false
     }
   }
 
@@ -26,6 +27,9 @@ class BluetoothSerialExample extends Component {
     })
   }
 
+  /**
+   * Discover unpaired devices, works only in android
+   */
   discoverUnpaired () {
     BluetoothSerial.discoverUnpairedDevices()
     .then((unpairedDevices) => {
@@ -41,13 +45,17 @@ class BluetoothSerialExample extends Component {
    */
   connect (id) {
     BluetoothSerial.connect(id)
-    .then((res) => alert(res.message))
+    .then((res) => {
+      alert(res.message)
+      this.setState({ connected: true })
+    })
     .catch((err) => alert(err))
   }
 
   render () {
     return (
       <View style={styles.container}>
+        <Text style={styles.heading}>Bluetooth Serial Example</Text>
         <Text>Bluetooth devices</Text>
         <View style={styles.listContainer}>
           {this.state.devices.map((device, i) => {
@@ -58,12 +66,15 @@ class BluetoothSerialExample extends Component {
             )
           })}
         </View>
-        {Platform.OS === 'android'
-        ? (
-          <TouchableOpacity style={styles.button} onPress={this.discoverUnpaired.bind(this)}>
-            <Text style={{ color: '#fff' }}>Discover unpaired devices</Text>
-          </TouchableOpacity>
-        ) : null}
+        <View>
+          {Platform.OS === 'android'
+            ? (
+              <TouchableOpacity style={styles.button} onPress={this.discoverUnpaired.bind(this)}>
+                <Text style={{ color: '#fff' }}>Discover unpaired devices</Text>
+              </TouchableOpacity>
+            ) : null}
+
+        </View>
       </View>
     )
   }
@@ -72,20 +83,24 @@ class BluetoothSerialExample extends Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5FCFF'
+  },
+  heading: {
+    fontWeight: 'bold',
+    fontSize: 24
   },
   listContainer: {
     borderColor: '#ccc',
     borderTopWidth: 0.5
   },
   listItem: {
-    paddingHorizontal: 25,
+    padding: 25,
     borderColor: '#ccc',
     borderBottomWidth: 0.5
   },
   button: {
+    padding: 25,
     backgroundColor: '#4C4C4C'
   }
 })
