@@ -60,6 +60,7 @@ CBUUID *writeCharacteristicUUID;
 //    CBUUID *uuid_char = [CBUUID UUIDWithString:@RBL_CHAR_RX_UUID];
 //
 //    [self writeValue:uuid_service characteristicUUID:uuid_char p:activePeripheral data:d];
+    NSLog(@"%@", @"write in ble.m");
     [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:d];
 }
 
@@ -176,6 +177,9 @@ CBUUID *writeCharacteristicUUID;
 
         return;
     }
+    
+    NSLog(@"%@", @"writeValue in ble.m");
+    
 
     if ((characteristic.properties & CBCharacteristicPropertyWrite) == CBCharacteristicPropertyWrite) {
         [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
