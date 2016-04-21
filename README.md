@@ -41,8 +41,16 @@ Taken from [RCTCamera](https://github.com/lwansbrough/react-native-camera) and e
     compile project(':react-native-bluetooth-serial')
     ```
 
+## Example
+As bluetooth is not available in any simulators, if you want to test it with some bluetooth peripherals you have
+to run the example on actual device.
+1. `git clone https://github.com/rusel1989/react-native-bluetooth-serial.git`
+2. `cd react-native-bluetooth-serial`
+3. `npm i`
+4. `react-native run-ios/run-android`
+
 ## API
-All  api methods return promise.
+All following methods have been tested on both android and ios devices and return promise.
 
 ### [android] enable()
 Enable bluetooth currently in android only.
@@ -76,6 +84,9 @@ Resolves to true if there is active connection to device or false if not.
 Write data to connected device, for now buffer is internally converted to Base64 encoded string and decoded to byte array
 on native side, beacause react native is currently not capable of passing buffer directly to native methods. Resolves
 to true when write was successful, otherwise rejects with error.
+
+## TODO
+- Make services configurable on ios
 
 
 
