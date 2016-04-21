@@ -4,7 +4,6 @@ import React, {
   Text,
   TouchableOpacity,
   View,
-  NativeModules,
   Platform,
   Switch
 } from 'react-native'
