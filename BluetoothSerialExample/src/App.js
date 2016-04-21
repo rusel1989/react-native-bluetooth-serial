@@ -38,6 +38,17 @@ class BluetoothSerialExample extends Component {
   }
 
   /**
+   * [android]
+   * enable bluetooth on device
+   */
+  enable () {
+    BluetoothSerial.enable()
+    .then((res) => this.setState({ isEnabled: res }))
+    .catch((err) => alert(err))
+  }
+
+  /**
+   * [android]
    * Discover unpaired devices, works only in android
    */
   discoverUnpaired () {
@@ -82,6 +93,10 @@ class BluetoothSerialExample extends Component {
     .catch((err) => alert(err))
   }
 
+  /**
+   * Toggle connection when we have active device
+   * @param  {Boolean} value
+   */
   toggleConnect (value) {
     if (value === true && this.state.device) {
       this.connect(this.state.device)
@@ -115,7 +130,13 @@ class BluetoothSerialExample extends Component {
         ? (
           <View style={{ backgroundColor: '#ff6523' }}>
             <Text style={[styles.connectionInfo, { color: '#fff', alignSelf: 'center' }]}>
-              ! Please enable bluetooth !
+              Bluetooth not enabled !
+              {Platform.OS === 'android'
+              ? (
+                <TouchableOpacity onPress={this.enable.bind(this)}>
+                  <Text style={{ fontWeight: 'bold' }}>ENABLE</Text>
+                </TouchableOpacity>
+              ) : null}
             </Text>
           </View>
         ) : null}
