@@ -72,7 +72,7 @@ Disconnects from current device should always resolve to true.
 ### isConnected()
 Resolves to true if there is active connection to device or false if not.
 
-### write(Buffer data)
+### write(Buffer|String data)
 Write data to connected device, for now buffer is internally converted to Base64 encoded string and decoded to byte array
 on native side, beacause react native is currently not capable of passing buffer directly to native methods. Resolves
 to true when write was successful, otherwise rejects with error.

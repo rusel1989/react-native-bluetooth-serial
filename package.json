@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/rusel1989/react-native-bluetooth-serial/issues"
   },
-  "homepage": "https://github.com/rusel1989/react-native-bluetooth-serial#readme"
+  "homepage": "https://github.com/rusel1989/react-native-bluetooth-serial#readme",
+  "dependencies": {
+    "buffer": "^4.6.0"
+  }
 }
