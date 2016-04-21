@@ -9,6 +9,9 @@ import React, {
 } from 'react-native'
 
 import BluetoothSerial from 'react-native-bluetooth-serial'
+import { Buffer } from 'buffer'
+global.Buffer = Buffer
+const iconv = require('iconv-lite')
 
 const Button = ({ label, onPress }) =>
   <TouchableOpacity style={styles.button} onPress={onPress}>
@@ -121,6 +124,23 @@ class BluetoothSerialExample extends Component {
     .catch((err) => alert(err))
   }
 
+  writePackets (message, packetSize = 64) {
+    const toWrite = iconv.encode(message, 'cp852')
+    const writePromises = []
+    const packetCount = Math.ceil(toWrite.length / packetSize)
+
+    for (var i = 0; i < packetCount; i++) {
+      const packet = new Buffer(packetSize)
+      packet.fill(' ')
+      toWrite.copy(packet, 0, i * packetSize, (i + 1) * packetSize)
+      writePromises.push(BluetoothSerial.write(packet))
+    }
+
+    Promise.all(writePromises)
+    .then((result) => {
+    })
+  }
+
   render () {
     return (
       <View style={styles.container}>
@@ -182,7 +202,7 @@ class BluetoothSerialExample extends Component {
           ) : null}
           <Button
             label='Write to device'
-            onPress={this.write.bind(this, 'test')} />
+            onPress={this.writePackets.bind(this, 'test', 64)} />
         </View>
       </View>
     )
