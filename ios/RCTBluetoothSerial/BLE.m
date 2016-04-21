@@ -29,6 +29,7 @@ CBUUID *redBearLabsServiceUUID;
 CBUUID *adafruitServiceUUID;
 CBUUID *lairdServiceUUID;
 CBUUID *blueGigaServiceUUID;
+CBUUID *rongtaSerivceUUID;
 CBUUID *serialServiceUUID;
 CBUUID *readCharacteristicUUID;
 CBUUID *writeCharacteristicUUID;
@@ -212,7 +213,9 @@ CBUUID *writeCharacteristicUUID;
     adafruitServiceUUID = [CBUUID UUIDWithString:@ADAFRUIT_SERVICE_UUID];
     lairdServiceUUID = [CBUUID UUIDWithString:@LAIRD_SERVICE_UUID];
     blueGigaServiceUUID = [CBUUID UUIDWithString:@BLUEGIGA_SERVICE_UUID];
-    NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID];
+    rongtaSerivceUUID = [CBUUID UUIDWithString:@RONGTA_SERVICE_UUID];
+
+    NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, rongtaSerivceUUID];
     [self.CM scanForPeripheralsWithServices:services options: nil];
 #else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
@@ -490,12 +493,12 @@ static bool done = false;
 {
     if (!error)
     {
-        //        printf("Characteristics of service with UUID : %s found\n",[self CBUUIDToString:service.UUID]);
+        NSLog(@"Characteristics of service with UUID : %@ found\n",[self CBUUIDToString:service.UUID]);
 
         for (int i=0; i < service.characteristics.count; i++)
         {
-            //            CBCharacteristic *c = [service.characteristics objectAtIndex:i];
-            //            printf("Found characteristic %s\n",[ self CBUUIDToString:c.UUID]);
+            CBCharacteristic *c = [service.characteristics objectAtIndex:i];
+            NSLog(@"Found characteristic %@\n",[ self CBUUIDToString:c.UUID]);
             CBService *s = [peripheral.services objectAtIndex:(peripheral.services.count - 1)];
 
             if ([service.UUID isEqual:s.UUID])
@@ -549,6 +552,10 @@ static bool done = false;
                 readCharacteristicUUID = [CBUUID UUIDWithString:@BLUEGIGA_CHAR_TX_UUID];
                 writeCharacteristicUUID = [CBUUID UUIDWithString:@BLUEGIGA_CHAR_RX_UUID];
                 break;
+            } else if ([service.UUID isEqual:rongtaSerivceUUID]) {
+                serialServiceUUID = rongtaSerivceUUID;
+                readCharacteristicUUID = [CBUUID UUIDWithString:@RONGTA_CHAR_TX_UUID];
+                writeCharacteristicUUID = [CBUUID UUIDWithString:@RONGTA_CHAR_RX_UUID];
             } else {
                 // ignore unknown services
             }
