@@ -9,7 +9,7 @@ import React, {
   Switch
 } from 'react-native'
 
-const BluetoothSerial = NativeModules.BluetoothSerial
+import BluetoothSerial from 'react-native-bluetooth-serial'
 
 const Button = ({ label, onPress }) =>
   <TouchableOpacity style={styles.button} onPress={onPress}>
