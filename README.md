@@ -44,6 +44,9 @@ Taken from [RCTCamera](https://github.com/lwansbrough/react-native-camera) and e
 ## API
 All  api methods return promise.
 
+### [android] enable()
+Enable bluetooth currently in android only.
+
 ### isEnabled()
 Resolves to boolean value indicating current bluetooth state.
 
@@ -62,6 +65,12 @@ Resolves to array of unpaired devices on android, device will pair after success
 
 ### connect(String id)
 Connect to device by MAC address on android or UUID on ios. Resolves to object with message or rejects with reason of failure.
+
+### disconnect()
+Disconnects from current device should always resolve to true.
+
+### isConnected()
+Resolves to true if there is active connection to device or false if not.
 
 ### write(Buffer data)
 Write data to connected device, for now buffer is internally converted to Base64 encoded string and decoded to byte array
