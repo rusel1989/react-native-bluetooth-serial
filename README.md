@@ -46,6 +46,14 @@ to run the example on actual device.
 3. `npm i`
 4. `react-native run-ios/run-android`
 
+# Reading and writing
+In Android after you connect to peripheral `write` and `read` methods should work for most of devices out of the box.
+On ios with BLE it is little bit complicated, you need to know correct serice and characteristics UUIDs. Currently
+supported and preconfigured services are Red Bear lab, Adafruit BLE, Bluegiga, Laird Virtual Serial Port and Rongta. If
+you know about some services that you think should be supported send PR.
+
+In near future i will try to improve device discovery on ios and also make services configurable from js.
+
 ## API
 All following methods have been tested on both android and ios devices and return promise.
 
