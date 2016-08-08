@@ -217,7 +217,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void subscribe(String delimiter, Promise promise) {
-        delimiter = delimiter;
+        this.delimiter = delimiter;
         SUBSCRIBED = true;
         promise.resolve(true);
     }
