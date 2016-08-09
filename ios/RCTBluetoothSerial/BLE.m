@@ -30,6 +30,7 @@ CBUUID *adafruitServiceUUID;
 CBUUID *lairdServiceUUID;
 CBUUID *blueGigaServiceUUID;
 CBUUID *rongtaSerivceUUID;
+CBUUID *posnetSerivceUUID;
 CBUUID *serialServiceUUID;
 CBUUID *readCharacteristicUUID;
 CBUUID *writeCharacteristicUUID;
@@ -218,8 +219,9 @@ CBUUID *writeCharacteristicUUID;
     lairdServiceUUID = [CBUUID UUIDWithString:@LAIRD_SERVICE_UUID];
     blueGigaServiceUUID = [CBUUID UUIDWithString:@BLUEGIGA_SERVICE_UUID];
     rongtaSerivceUUID = [CBUUID UUIDWithString:@RONGTA_SERVICE_UUID];
+    posnetSerivceUUID = [CBUUID UUIDWithString:@POSNET_SERVICE_UUID];
 
-    NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, rongtaSerivceUUID];
+    NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, rongtaSerivceUUID, posnetSerivceUUID];
     [self.CM scanForPeripheralsWithServices:services options: nil];
 #else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
@@ -560,6 +562,11 @@ static bool done = false;
                 serialServiceUUID = rongtaSerivceUUID;
                 readCharacteristicUUID = [CBUUID UUIDWithString:@RONGTA_CHAR_TX_UUID];
                 writeCharacteristicUUID = [CBUUID UUIDWithString:@RONGTA_CHAR_RX_UUID];
+            } else if ([service.UUID isEqual:posnetSerivceUUID]) {
+                NSLog(@"Posnet");
+                serialServiceUUID = posnetSerivceUUID;
+                readCharacteristicUUID = [CBUUID UUIDWithString:@POSNET_CHAR_TX_UUID];
+                writeCharacteristicUUID = [CBUUID UUIDWithString:@POSNET_CHAR_RX_UUID];
             } else {
                 // ignore unknown services
             }
@@ -607,25 +614,11 @@ static bool done = false;
             data_len = characteristic.value.length;
             [characteristic.value getBytes:data length:data_len];
 
-            if (data_len == 20)
-            {
-                memcpy(&buf[len], data, 20);
-                len += data_len;
+            memcpy(&buf[len], data, data_len);
+            len += data_len;
 
-                if (len >= 64)
-                {
-                    [[self delegate] bleDidReceiveData:buf length:len];
-                    len = 0;
-                }
-            }
-            else if (data_len < 20)
-            {
-                memcpy(&buf[len], data, data_len);
-                len += data_len;
-
-                [[self delegate] bleDidReceiveData:buf length:len];
-                len = 0;
-            }
+            [[self delegate] bleDidReceiveData:buf length:len];
+            len = 0;
         }
     }
     else

@@ -7,6 +7,7 @@
 //
 
 #import "RCTBluetoothSerial.h"
+#import "RCTEventDispatcher.h"
 
 @interface RCTBluetoothSerial()
 - (NSString *)readUntilDelimiter:(NSString *)delimiter;
@@ -350,7 +351,7 @@ RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve)
     NSString *message = [self readUntilDelimiter:_delimiter];
 
     if ([message length] > 0) {
-        //TODO: send event to js
+      [self.bridge.eventDispatcher sendAppEventWithName:@"data" body:@{@"data": message}];
     }
 
 }
