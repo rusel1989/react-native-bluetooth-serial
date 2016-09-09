@@ -70,6 +70,29 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         } else {
             sendEvent(_reactContext, "bluetoothDisabled", null);
         }
+
+        IntentFilter btEnabledFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+
+        reactContext.registerReceiver(new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final String action = intent.getAction();
+
+                if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                    final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                    switch (state) {
+                        case BluetoothAdapter.STATE_OFF:
+                            Log.e(TAG, "Bluetooth was disabled");
+                            sendEvent(_reactContext, "bluetoothDisabled", null);
+                            break;
+                        case BluetoothAdapter.STATE_ON:
+                            Log.e(TAG, "Bluetooth was enabled");
+                            sendEvent(_reactContext, "bluetoothEnabled", null);
+                            break;
+                    }
+                }
+            }
+        }, btEnabledFilter);
     }
 
     @Override
@@ -114,27 +137,6 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         }
         promise.resolve(deviceList);
     }
-
-    private final BroadcastReceiver mBluetoothEnabledReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-
-            if (action.equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
-                final int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-                switch (state) {
-                    case BluetoothAdapter.STATE_OFF:
-                        Log.e(TAG, "Bluetooth was disabled");
-                        sendEvent(_reactContext, "bluetoothDisabled", null);
-                        break;
-                    case BluetoothAdapter.STATE_ON:
-                        Log.e(TAG, "Bluetooth was enabled");
-                        sendEvent(_reactContext, "bluetoothEnabled", null);
-                        break;
-                }
-            }
-        }
-    };
 
     @ReactMethod
     public void discoverUnpairedDevices(final Promise promise) {
@@ -322,10 +324,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     }
 
     private void sendEvent(ReactContext reactContext, String eventName, @Nullable WritableMap params) {
-        Log.d(TAG, "Sending event");
-        reactContext
-        .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-        .emit(eventName, params);
+        if (reactContext.hasActiveCatalystInstance()) {
+            Log.d(TAG, "Sending event");
+            reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+            .emit(eventName, params);
+        }
     }
 
     private void notifyConnectionSuccess(String msg) {
