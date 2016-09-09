@@ -1,14 +1,7 @@
 const ReactNative = require('react-native')
 const { Buffer } = require('buffer')
-const { NativeModules, Platform } = ReactNative
+const { NativeModules, DeviceEventEmitter } = ReactNative
 const BluetoothSerial = NativeModules.BluetoothSerial
-let EventEmitter
-
-if (Platform.OS === 'android') {
-  EventEmitter = ReactNative.DeviceEventEmitter
-} else {
-  EventEmitter = ReactNative.NativeAppEventEmmiter
-}
 
 /**
  * Listen for available events
@@ -16,7 +9,7 @@ if (Platform.OS === 'android') {
  * @param  {Function} handler Event handler
  */
 BluetoothSerial.on = (eventName, handler) => {
-  EventEmitter.addListener(eventName, handler)
+  DeviceEventEmitter.addListener(eventName, handler)
 }
 
 /**
