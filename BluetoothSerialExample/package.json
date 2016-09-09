@@ -1,6 +1,6 @@
 {
   "name": "BluetoothSerialExample",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
@@ -8,8 +8,12 @@
   "dependencies": {
     "@remobile/react-native-toast": "^1.0.4",
     "iconv-lite": "^0.4.13",
-    "react": "^0.14.8",
-    "react-native": "^0.23.1",
+    "react": "^15.3.0",
+    "react-native": "^0.32.0",
     "react-native-bluetooth-serial": "file:../"
+  },
+  "engines": {
+    "node": "^6.5.0",
+    "npm": "^3.10.3"
   }
 }

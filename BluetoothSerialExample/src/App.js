@@ -1,5 +1,5 @@
-import React, {
-  Component,
+import React, { Component } from 'react'
+import {
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -8,7 +8,7 @@ import React, {
   Switch
 } from 'react-native'
 
-import Toast from 'react-native-toast'
+import Toast from '@remobile/react-native-toast'
 import BluetoothSerial from 'react-native-bluetooth-serial'
 import { Buffer } from 'buffer'
 global.Buffer = Buffer
@@ -171,23 +171,19 @@ class BluetoothSerialExample extends Component {
     return (
       <View style={styles.container}>
         <Text style={styles.heading}>Bluetooth Serial Example</Text>
-        {this.state.isEnabled === false
-        ? (
-          <View style={{ backgroundColor: '#ff6523' }}>
-            <Text style={[styles.connectionInfo, { color: '#fff', alignSelf: 'center' }]}>
-              Bluetooth not enabled !
-              {Platform.OS === 'android'
-              ? (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', height: 40 }}>
-                  <Text style={{ fontWeight: 'bold' }}>ENABLE BT</Text>
-                  <Switch
-                    onValueChange={this.toggleBluetooth.bind(this)}
-                    value={this.state.isEnabled} />
-                </View>
-              ) : null}
-            </Text>
-          </View>
-        ) : null}
+
+        <View style={{ backgroundColor: '#eee' }}>
+          {Platform.OS === 'android'
+          ? (
+            <View style={styles.enableInfoWrapper}>
+              <Text style={{ fontWeight: 'bold' }}>ENABLE BT</Text>
+              <Switch
+                onValueChange={this.toggleBluetooth.bind(this)}
+                value={this.state.isEnabled} />
+            </View>
+          ) : null}
+        </View>
+
         <View style={styles.connectionInfoWrapper}>
           <View>
             <Switch
@@ -248,6 +244,13 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginVertical: 10,
     alignSelf: 'center'
+  },
+  enableInfoWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    height: 40,
+    paddingHorizontal: 25,
+    alignItems: 'center'
   },
   connectionInfoWrapper: {
     flexDirection: 'row',
