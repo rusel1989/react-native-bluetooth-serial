@@ -8,6 +8,7 @@ import React, {
   Switch
 } from 'react-native'
 
+import Toast from 'react-native-toast'
 import BluetoothSerial from 'react-native-bluetooth-serial'
 import { Buffer } from 'buffer'
 global.Buffer = Buffer
@@ -24,7 +25,7 @@ class BluetoothSerialExample extends Component {
     this.state = {
       discovering: false,
       devices: [],
-      conencted: false
+      connected: false
     }
   }
 
@@ -37,6 +38,9 @@ class BluetoothSerialExample extends Component {
       const [ isEnabled, devices ] = values
       this.setState({ isEnabled, devices })
     })
+
+    BluetoothSerial.on('bluetoothEnabled', () => Toast.showLongBottom('Bluetooth enabled'))
+    BluetoothSerial.on('bluetoothDisabled', () => Toast.showLongBottom('Bluetooth disabled'))
   }
 
   /**
@@ -45,8 +49,30 @@ class BluetoothSerialExample extends Component {
    */
   enable () {
     BluetoothSerial.enable()
-    .then((res) => this.setState({ isEnabled: res }))
-    .catch((err) => alert(err))
+    .then((res) => this.setState({ isEnabled: true }))
+    .catch((err) => Toast.showLongBottom(err))
+  }
+
+  /**
+   * [android]
+   * disable bluetooth on device
+   */
+  disable () {
+    BluetoothSerial.disable()
+    .then((res) => this.setState({ isEnabled: false }))
+    .catch((err) => Toast.showLongBottom(err))
+  }
+
+  /**
+   * [android]
+   * toggle bluetooth
+   */
+  toggleBluetooth (value) {
+    if (value === true) {
+      this.enable()
+    } else {
+      this.disable()
+    }
   }
 
   /**
@@ -80,10 +106,10 @@ class BluetoothSerialExample extends Component {
     this.setState({ connecting: true })
     BluetoothSerial.connect(device.id)
     .then((res) => {
-      alert(res.message)
+      Toast.showLongBottom(res.message)
       this.setState({ device, connected: true, connecting: false })
     })
-    .catch((err) => alert(err))
+    .catch((err) => Toast.showLongBottom(err))
   }
 
   /**
@@ -92,7 +118,7 @@ class BluetoothSerialExample extends Component {
   disconnect () {
     this.setState({ connected: false })
     BluetoothSerial.disconnect()
-    .catch((err) => alert(err))
+    .catch((err) => Toast.showLongBottom(err))
   }
 
   /**
@@ -113,15 +139,15 @@ class BluetoothSerialExample extends Component {
    */
   write (message) {
     if (!this.state.connected) {
-      alert('You must connect to device first')
+      Toast.showLongBottom('You must connect to device first')
     }
 
     BluetoothSerial.write(message)
     .then((res) => {
-      alert('Successfuly wrote to device')
+      Toast.showLongBottom('Successfuly wrote to device')
       this.setState({ connected: true })
     })
-    .catch((err) => alert(err))
+    .catch((err) => Toast.showLongBottom(err))
   }
 
   writePackets (message, packetSize = 64) {
@@ -152,9 +178,12 @@ class BluetoothSerialExample extends Component {
               Bluetooth not enabled !
               {Platform.OS === 'android'
               ? (
-                <TouchableOpacity onPress={this.enable.bind(this)}>
-                  <Text style={{ fontWeight: 'bold' }}>ENABLE</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', height: 40 }}>
+                  <Text style={{ fontWeight: 'bold' }}>ENABLE BT</Text>
+                  <Switch
+                    onValueChange={this.toggleBluetooth.bind(this)}
+                    value={this.state.isEnabled} />
+                </View>
               ) : null}
             </Text>
           </View>
@@ -164,7 +193,7 @@ class BluetoothSerialExample extends Component {
             <Switch
               onValueChange={this.toggleConnect.bind(this)}
               disabled={!this.state.device}
-              value={this.state.connected || this.state.connecting}/>
+              value={this.state.connected || this.state.connecting} />
           </View>
           <View>
             {this.state.connected
