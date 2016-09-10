@@ -178,9 +178,9 @@ CBUUID *writeCharacteristicUUID;
 
         return;
     }
-    
+
     NSLog(@"%@", @"writeValue in ble.m");
-    
+
 
     if ((characteristic.properties & CBCharacteristicPropertyWrite) == CBCharacteristicPropertyWrite) {
         [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
@@ -445,7 +445,16 @@ CBUUID *writeCharacteristicUUID;
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central
 {
 #if TARGET_OS_IPHONE
-    NSLog(@"Status of CoreBluetooth central manager changed %ld (%s)", (long)central.state, [self centralManagerStateToString:central.state]);
+    char *stateString = [self centralManagerStateToString:central.state];
+
+    NSLog(@"Status of CoreBluetooth central manager changed %ld (%s)", (long)central.state, stateString);
+
+    bool isBluetoothEnabled = false;
+    if (central.state == CBCentralManagerStatePoweredOn) {
+        isBluetoothEnabled = true;
+    }
+
+    [[self delegate] bleDidChangedState:isBluetoothEnabled];
 #else
     [self isLECapableHardware];
 #endif

@@ -234,6 +234,18 @@ RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve)
 
 }
 
+- (void)bleDidChangedState:(bool)isEnabled
+{
+    NSLog(@"bleDidChangedState");
+    NSString *eventName;
+    if (isEnabled) {
+        eventName = @"bluetoothEnabled";
+    } else {
+        eventName = @"bluetoothDisabled";
+    }
+    [self.bridge.eventDispatcher sendDeviceEventWithName:eventName body:nil];
+}
+
 - (void)bleDidConnect
 {
     NSLog(@"bleDidConnect");
