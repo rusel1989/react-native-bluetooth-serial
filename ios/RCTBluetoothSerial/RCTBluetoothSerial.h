@@ -7,6 +7,7 @@
 //
 
 #import "RCTBridgeModule.h"
+//#import "RCTEventEmitter.h" Wasnt working properly yet, events were fired but listeneres not called
 #import "BLE.h"
 
 @interface RCTBluetoothSerial : NSObject <RCTBridgeModule,BLEDelegate> {

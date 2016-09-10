@@ -42,6 +42,12 @@ RCT_EXPORT_MODULE();
     return dispatch_get_main_queue();
 }
 
+- (NSArray<NSString *> *)supportedEvents
+{
+    return @[@"connectionSuccess",@"connectionLost",@"bluetoothEnabled",@"bluetoothDisabled",@"data"];
+}
+
+
 #pragma mark - Methods available form Javascript
 
 RCT_EXPORT_METHOD(connect:(NSString *)uuid
@@ -231,6 +237,8 @@ RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve)
 - (void)bleDidConnect
 {
     NSLog(@"bleDidConnect");
+    [self.bridge.eventDispatcher sendDeviceEventWithName:@"connectionSuccess" body:nil];
+    //[self sendEventWithName:@"connectionSuccess" body:nil];
 
     if (_connectionResolver) {
         _connectionResolver((id)kCFBooleanTrue);
@@ -241,6 +249,9 @@ RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve)
 {
     // TODO is there anyway to figure out why we disconnected?
     NSLog(@"bleDidDisconnect");
+    [self.bridge.eventDispatcher sendDeviceEventWithName:@"connectionLost" body:nil];
+    //[self sendEventWithName:@"connectionLost" body:nil];
+
     _connectionResolver = nil;
 }
 
@@ -351,7 +362,7 @@ RCT_EXPORT_METHOD(clear:(RCTPromiseResolveBlock)resolve)
     NSString *message = [self readUntilDelimiter:_delimiter];
 
     if ([message length] > 0) {
-      [self.bridge.eventDispatcher sendAppEventWithName:@"data" body:@{@"data": message}];
+      [self.bridge.eventDispatcher sendDeviceEventWithName:@"data" body:@{@"data": message}];
     }
 
 }
