@@ -10,7 +10,8 @@
     "iconv-lite": "^0.4.13",
     "react": "^15.3.0",
     "react-native": "^0.32.0",
-    "react-native-bluetooth-serial": "file:../"
+    "react-native-bluetooth-serial": "file:../",
+    "stream": "0.0.2"
   },
   "engines": {
     "node": "^6.5.0",

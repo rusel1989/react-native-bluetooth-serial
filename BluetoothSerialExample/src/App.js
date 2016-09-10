@@ -41,6 +41,10 @@ class BluetoothSerialExample extends Component {
 
     BluetoothSerial.on('bluetoothEnabled', () => Toast.showLongBottom('Bluetooth enabled'))
     BluetoothSerial.on('bluetoothDisabled', () => Toast.showLongBottom('Bluetooth disabled'))
+    BluetoothSerial.on('connectionLost', () => {
+      Toast.showLongBottom(`Connection to device ${this.state.device.name} has been lost`)
+      this.setState({ connected: false })
+    })
   }
 
   /**
@@ -106,7 +110,7 @@ class BluetoothSerialExample extends Component {
     this.setState({ connecting: true })
     BluetoothSerial.connect(device.id)
     .then((res) => {
-      Toast.showLongBottom(res.message)
+      Toast.showLongBottom(`Connected to device ${device.name}`)
       this.setState({ device, connected: true, connecting: false })
     })
     .catch((err) => Toast.showLongBottom(err))
@@ -116,8 +120,8 @@ class BluetoothSerialExample extends Component {
    * Disconnect from bluetooth device
    */
   disconnect () {
-    this.setState({ connected: false })
     BluetoothSerial.disconnect()
+    .then(() => this.setState({ connected: false }))
     .catch((err) => Toast.showLongBottom(err))
   }
 
