@@ -83,6 +83,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
                     switch (state) {
                         case BluetoothAdapter.STATE_OFF:
                             Log.e(TAG, "Bluetooth was disabled");
+                            sendEvent(_reactContext, "connectionLost", null);
                             sendEvent(_reactContext, "bluetoothDisabled", null);
                             break;
                         case BluetoothAdapter.STATE_ON:

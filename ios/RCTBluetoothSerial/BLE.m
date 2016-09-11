@@ -454,6 +454,11 @@ CBUUID *writeCharacteristicUUID;
         isBluetoothEnabled = true;
     }
 
+    if (!isBluetoothEnabled && isConnected) {
+        [[self delegate] bleDidDisconnect];
+        isConnected = false;
+    }
+
     [[self delegate] bleDidChangedState:isBluetoothEnabled];
 #else
     [self isLECapableHardware];
