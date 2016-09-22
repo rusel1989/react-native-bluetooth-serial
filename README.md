@@ -63,7 +63,7 @@ All following methods have been tested on both android and ios devices and retur
 Enable bluetooth currently in android only.
 
 ### [android] disable()
-Enable bluetooth currently in android only.
+Disable bluetooth currently in android only.
 
 ### isEnabled()
 Resolves to boolean value indicating current bluetooth state.
@@ -102,7 +102,7 @@ You can listen to few event with `BluetoothSerial.on(eventName, callback)`
 Currently provided events are:
 - `bluetoothEnabled` - when user enabled bt
 - `bluetoothDisabled` - when user disabled bt
-- `connectionSuccess` - when app connected to device has been connected succesfuly
+- `connectionSuccess` - when app connected to device
 - `connectionLost` - when app lost connection to device (fired with `bluetoothDisabled`)
 
 ## TODO
