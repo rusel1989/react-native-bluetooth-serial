@@ -65,7 +65,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
             bluetoothSerialService = new RCTBluetoothSerialService(this);
         }
 
-        if (bluetoothAdapter.isEnabled()) {
+        if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
             sendEvent(_reactContext, "bluetoothEnabled", null);
         } else {
             sendEvent(_reactContext, "bluetoothDisabled", null);
@@ -131,10 +131,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void list(Promise promise) {
         WritableArray deviceList = Arguments.createArray();
-        Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
+        if (bluetoothAdapter != null) {
+            Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
 
-        for (BluetoothDevice device : bondedDevices) {
-            deviceList.pushMap(deviceToWritableMap(device));
+            for (BluetoothDevice device : bondedDevices) {
+                deviceList.pushMap(deviceToWritableMap(device));
+            }
         }
         promise.resolve(deviceList);
     }
@@ -176,7 +178,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         Activity activity = getCurrentActivity();
         activity.registerReceiver(discoverReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
         activity.registerReceiver(discoverReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
-        bluetoothAdapter.startDiscovery();
+        if (bluetoothAdapter != null) {
+            bluetoothAdapter.startDiscovery();
+        } else {
+            promise.resolve(Arguments.createArray());
+        }
     }
 
     @ReactMethod
@@ -189,7 +195,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void enable(Promise promise) {
-        if (!bluetoothAdapter.isEnabled()) {
+        if (bluetoothAdapter != null && !bluetoothAdapter.isEnabled()) {
             bluetoothAdapter.enable();
         }
         promise.resolve(true);
@@ -197,7 +203,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void disable(Promise promise) {
-        if (bluetoothAdapter.isEnabled()) {
+        if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
             bluetoothAdapter.disable();
         }
         promise.resolve(true);
@@ -206,11 +212,15 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void connect(String id, Promise promise) {
         mConnectedPromise = promise;
-        BluetoothDevice device = bluetoothAdapter.getRemoteDevice(id);
-        if (device != null) {
-            bluetoothSerialService.connect(device, true);
+        if (bluetoothAdapter != null) {
+            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(id);
+            if (device != null) {
+                bluetoothSerialService.connect(device, true);
+            } else {
+                promise.reject("Could not connect to " + id);
+            }
         } else {
-            promise.reject("Could not connect to " + id);
+            promise.resolve(true);
         }
     }
 
@@ -249,7 +259,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void isEnabled(Promise promise) {
-        promise.resolve(bluetoothAdapter.isEnabled());
+        if (bluetoothAdapter != null) {
+            promise.resolve(bluetoothAdapter.isEnabled());
+        } else {
+            promise.resolve(false);
+        }
     }
 
     @ReactMethod
@@ -279,7 +293,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void setAdapterName(String newName, Promise promise) {
-        bluetoothAdapter.setName(newName);
+        if (bluetoothAdapter != null) {
+            bluetoothAdapter.setName(newName);
+        }
         promise.resolve(true);
     }
 
