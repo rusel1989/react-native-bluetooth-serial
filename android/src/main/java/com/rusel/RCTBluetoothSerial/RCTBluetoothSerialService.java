@@ -434,7 +434,7 @@ public class RCTBluetoothSerialService {
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
-                    String data = new String(buffer, 0, bytes);
+                    String data = new String(buffer, 0, bytes, "ISO-8859-1");
 
                     // Send the new data String to the UI Activity
                     mModule.receiveMessage(RCTBluetoothSerialModule.MESSAGE_READ, data);
