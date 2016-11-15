@@ -23,6 +23,7 @@
 
 static bool isConnected = false;
 static int rssi = 0;
+static const int MAX_BUF_LENGTH = 100;
 
 // TODO should have a configurable list of services
 CBUUID *redBearLabsServiceUUID;
@@ -62,7 +63,23 @@ CBUUID *writeCharacteristicUUID;
 //
 //    [self writeValue:uuid_service characteristicUUID:uuid_char p:activePeripheral data:d];
     NSLog(@"%@", @"write in ble.m");
-    [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:d];
+//************TEST CODE *********
+    NSInteger data_len = d.length;
+    NSData *buffer;
+    int i = 0;
+    
+    for(; i < data_len; i+=MAX_BUF_LENGTH)
+    {
+        NSInteger remainLength = data_len-i;
+        NSInteger bufLen = ((remainLength)>MAX_BUF_LENGTH) ? MAX_BUF_LENGTH:remainLength;
+        buffer = [d subdataWithRange:NSMakeRange(i, bufLen)];
+        
+        NSLog(@"Buffer data %i %i %@", remainLength, i, [[NSString alloc] initWithData:buffer encoding:NSUTF8StringEncoding]);
+        
+        [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:buffer];
+    }
+//********************************
+//    [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:d];
 }
 
 -(void) enableReadNotification:(CBPeripheral *)p
@@ -180,8 +197,8 @@ CBUUID *writeCharacteristicUUID;
     }
 
     NSLog(@"%@", @"writeValue in ble.m");
-
-
+    
+    NSLog(@"Buffer data %i", data.length);
     if ((characteristic.properties & CBCharacteristicPropertyWrite) == CBCharacteristicPropertyWrite) {
         [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
     }
@@ -222,7 +239,9 @@ CBUUID *writeCharacteristicUUID;
     posnetSerivceUUID = [CBUUID UUIDWithString:@POSNET_SERVICE_UUID];
 
     NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, rongtaSerivceUUID, posnetSerivceUUID];
-    [self.CM scanForPeripheralsWithServices:services options: nil];
+    //    [self.CM scanForPeripheralsWithServices:services options: nil];
+    NSLog(@"Code update remove filter");
+    [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
 #else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
 #endif
@@ -616,10 +635,7 @@ static bool done = false;
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
 {
-    unsigned char data[20];
-
     static unsigned char buf[512];
-    static int len = 0;
     NSInteger data_len;
 
     if (!error)
@@ -627,13 +643,9 @@ static bool done = false;
         if ([characteristic.UUID isEqual:readCharacteristicUUID])
         {
             data_len = characteristic.value.length;
-            [characteristic.value getBytes:data length:data_len];
+            [characteristic.value getBytes:buf length:data_len];
 
-            memcpy(&buf[len], data, data_len);
-            len += data_len;
-
-            [[self delegate] bleDidReceiveData:buf length:len];
-            len = 0;
+            [[self delegate] bleDidReceiveData:buf length:data_len];
         }
     }
     else
