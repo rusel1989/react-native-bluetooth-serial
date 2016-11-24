@@ -362,12 +362,14 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         if (mConnectedPromise != null) {
             mConnectedPromise.resolve(params);
         }
+        mConnectedPromise = null;
     }
 
     private void notifyConnectionFailed(String msg) {
         if (mConnectedPromise != null) {
             mConnectedPromise.reject(msg);
         }
+        mConnectedPromise = null;
     }
 
     private void notifyConnectionLost(String msg) {
