@@ -134,8 +134,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         if (bluetoothAdapter != null) {
             Set<BluetoothDevice> bondedDevices = bluetoothAdapter.getBondedDevices();
 
-            for (BluetoothDevice device : bondedDevices) {
-                deviceList.pushMap(deviceToWritableMap(device));
+            for (BluetoothDevice rawDevice : bondedDevices) {
+                WritableMap device = deviceToWritableMap(rawDevice);
+                deviceList.pushMap(device);
             }
         }
         promise.resolve(deviceList);
@@ -312,6 +313,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         if (device.getBluetoothClass() != null) {
             params.putInt("class", device.getBluetoothClass().getDeviceClass());
         }
+        Log.d(TAG, "device" + params.toString());
         return params;
     }
 
