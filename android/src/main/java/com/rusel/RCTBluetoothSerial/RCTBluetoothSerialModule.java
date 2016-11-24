@@ -176,8 +176,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule {
         };
 
         Activity activity = getCurrentActivity();
-        activity.registerReceiver(discoverReceiver, new IntentFilter(BluetoothDevice.ACTION_FOUND));
-        activity.registerReceiver(discoverReceiver, new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED));
+        IntentFilter intentFilter = new IntentFilter();
+
+        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+
+        activity.registerReceiver(discoverReceiver, intentFilter);
         if (bluetoothAdapter != null) {
             bluetoothAdapter.startDiscovery();
         } else {
