@@ -1,3 +1,13 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.1.0'
+    }
+}
+
 apply plugin: 'com.android.library'
 
 android {
@@ -13,6 +23,10 @@ android {
             abiFilters "armeabi-v7a", "x86"
         }
     }
+}
+
+repositories {
+    mavenCentral()
 }
 
 dependencies {
