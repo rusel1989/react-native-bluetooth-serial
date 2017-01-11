@@ -58,12 +58,7 @@ CBUUID *writeCharacteristicUUID;
 
 -(void) write:(NSData *)d
 {
-//    CBUUID *uuid_service = [CBUUID UUIDWithString:@RBL_SERVICE_UUID];
-//    CBUUID *uuid_char = [CBUUID UUIDWithString:@RBL_CHAR_RX_UUID];
-//
-//    [self writeValue:uuid_service characteristicUUID:uuid_char p:activePeripheral data:d];
     NSLog(@"%@", @"write in ble.m");
-//************TEST CODE *********
     NSInteger data_len = d.length;
     NSData *buffer;
     int i = 0;
@@ -78,8 +73,6 @@ CBUUID *writeCharacteristicUUID;
         
         [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:buffer];
     }
-//********************************
-//    [self writeValue:serialServiceUUID characteristicUUID:writeCharacteristicUUID p:activePeripheral data:d];
 }
 
 -(void) enableReadNotification:(CBPeripheral *)p
@@ -239,9 +232,7 @@ CBUUID *writeCharacteristicUUID;
     posnetSerivceUUID = [CBUUID UUIDWithString:@POSNET_SERVICE_UUID];
 
     NSArray *services = @[redBearLabsServiceUUID, adafruitServiceUUID, lairdServiceUUID, blueGigaServiceUUID, rongtaSerivceUUID, posnetSerivceUUID];
-    //    [self.CM scanForPeripheralsWithServices:services options: nil];
-    NSLog(@"Code update remove filter");
-    [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
+    [self.CM scanForPeripheralsWithServices:services options: nil];
 #else
     [self.CM scanForPeripheralsWithServices:nil options:nil]; // Start scanning
 #endif
