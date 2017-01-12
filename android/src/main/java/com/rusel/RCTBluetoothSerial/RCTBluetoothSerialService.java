@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
+import com.facebook.react.BuildConfig;
+
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 /**

@@ -1,5 +1,6 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.lang.reflect.Method;
 import java.util.Set;
 import javax.annotation.Nullable;
 
@@ -13,6 +14,7 @@ import android.content.IntentFilter;
 import android.util.Log;
 import android.util.Base64;
 
+import com.facebook.react.BuildConfig;
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -55,6 +57,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private Promise mEnabledPromise;
     private Promise mConnectedPromise;
     private Promise mDeviceDiscoveryPromise;
+    private Promise mPairDevicePromise;
 
     public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -87,7 +90,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_ENABLE_BLUETOOTH) {
 
             if (resultCode == Activity.RESULT_OK) {
@@ -106,6 +109,10 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         }
     }
 
+    @Override
+    public void onNewIntent(Intent intent) {
+
+    }
 
     @Override
     public void onHostResume() {
@@ -143,12 +150,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void requestEnable(Promise promise) {
         // If bluetooth is already enabled resolve promise immediately
-        Activity activity = getCurrentActivity();
-
         if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
             promise.resolve(true);
         // Start new intent if bluetooth is note enabled
         } else {
+            Activity activity = getCurrentActivity();
             mEnabledPromise = promise;
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             if (activity != null) {
@@ -234,6 +240,18 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         }
     }
 
+    public void pairDevice(String id, Promise promise) {
+        if (D) Log.d(TAG, "Pair device: " + id);
+
+        mPairDevicePromise = promise;
+
+        if (mBluetoothAdapter != null) {
+            mBluetoothAdapter.startDiscovery();
+        } else {
+            promise.resolve(false);
+        }
+    }
+
     /********************************/
     /** Connection related methods **/
 
@@ -279,7 +297,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     /**
      * Write to device over serial port
      */
-    public void write(String message, Promise promise) {
+    public void writeToDevice(String message, Promise promise) {
         if (D) Log.d(TAG, "Write " + message);
         byte[] data = Base64.decode(message, Base64.DEFAULT);
         mBluetoothService.write(data);
@@ -293,7 +311,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     /**
      * Read from device over serial port
      */
-    public void read(Promise promise) {
+    public void readFromDevice(Promise promise) {
         if (D) Log.d(TAG, "Read");
         int length = mBuffer.length();
         String data = mBuffer.substring(0, length);
@@ -412,16 +430,37 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     /*********************/
 
     /**
+     * Pair device
+     * @param device Bluetooth device
+     */
+    private void pairDevice(BluetoothDevice device) {
+        try {
+            if (D) Log.d("pairDevice()", "Start Pairing...");
+            Method m = device.getClass().getMethod("createBond", (Class[]) null);
+            m.invoke(device, (Object[]) null);
+            if (D) Log.d("pairDevice()", "Pairing finished.");
+            if (mPairDevicePromise != null) {
+                mPairDevicePromise.resolve(true);
+            }
+        } catch (Exception e) {
+            Log.e("pairDevice()", e.getMessage());
+            if (mPairDevicePromise != null) {
+                mPairDevicePromise.reject(e);
+            }
+        }
+    }
+
+    /**
      * Send event to javascript
      * @param eventName Name of the event
      * @param params Additional params
      */
     private void sendEvent(String eventName, @Nullable WritableMap params) {
         if (mReactContext.hasActiveCatalystInstance()) {
-            if (D) Log.d(TAG, "Sending event");
+            if (D) Log.d(TAG, "Sending event" + eventName);
             mReactContext
-                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                    .emit(eventName, params);
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit(eventName, params);
         }
     }
 
