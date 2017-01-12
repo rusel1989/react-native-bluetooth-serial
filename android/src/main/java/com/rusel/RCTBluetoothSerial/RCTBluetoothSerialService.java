@@ -9,8 +9,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
-import com.facebook.react.BuildConfig;
-
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 /**
@@ -24,7 +22,7 @@ import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
  */
 class RCTBluetoothSerialService {
     // Debugging
-    private static final boolean D = BuildConfig.DEBUG;
+    private static final boolean D = true;
 
     // UUIDs
     private static final UUID UUID_SPP = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
