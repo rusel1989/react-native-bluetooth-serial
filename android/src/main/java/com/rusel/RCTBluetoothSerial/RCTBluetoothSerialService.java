@@ -91,7 +91,7 @@ class RCTBluetoothSerialService {
 
         // Synchronize a copy of the ConnectedThread
         synchronized (this) {
-            if (isConnected()) return;
+            if (!isConnected()) return;
             r = mConnectedThread;
         }
 
