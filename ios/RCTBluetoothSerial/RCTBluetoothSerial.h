@@ -6,7 +6,9 @@
 //  Copyright © 2016 Jakub Martyčák. All rights reserved.
 //
 
-#import "RCTBridgeModule.h"
+#import <React/RCTBridgeModule.h>
+#import <React/RCTEventDispatcher.h>
+
 //#import "RCTEventEmitter.h" Wasnt working properly yet, events were fired but listeneres not called
 #import "BLE.h"
 

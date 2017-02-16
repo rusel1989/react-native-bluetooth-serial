@@ -7,7 +7,6 @@
 //
 
 #import "RCTBluetoothSerial.h"
-#import "RCTEventDispatcher.h"
 
 @interface RCTBluetoothSerial()
 - (NSString *)readUntilDelimiter:(NSString *)delimiter;
