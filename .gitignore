@@ -34,5 +34,6 @@ local.properties
 node_modules/
 npm-debug.log
 
-
+.vscode
+jsconfig.json
 *.sublime-workspace
