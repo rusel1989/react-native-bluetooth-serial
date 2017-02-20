@@ -105,6 +105,8 @@ Currently provided events are:
 - `connectionSuccess` - when app connected to device
 - `connectionLost` - when app lost connection to device (fired with `bluetoothDisabled`)
 
+You can use `BluetoothSerial.removeListener(eventName, callback)` to stop listening to an event
+
 ## TODO
 - Make services configurable on ios
 
