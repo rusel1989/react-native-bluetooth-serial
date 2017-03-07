@@ -34,12 +34,12 @@ BluetoothSerial.write = (data) => {
   return BluetoothSerial.writeToDevice(data.toString('base64'))
 }
 
-BluetoothSerial.read = () => {
-  return BluetoothSerial.readFromDevice()
-}
 
-BluetoothSerial.availableToRead = () =. {
+BluetoothSerial.availableToRead = () => {
   return BluetoothSerial.available()
+}
+BluetoothSerial.setReadDelimiter = (delimiter) => {
+  return BluetoothSerial.withDelimiter(delimiter);
 }
 
 module.exports = BluetoothSerial
