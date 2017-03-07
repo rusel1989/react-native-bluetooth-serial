@@ -38,4 +38,8 @@ BluetoothSerial.read = () => {
   return BluetoothSerial.readFromDevice()
 }
 
+BluetoothSerial.availableToRead = () =. {
+  return BluetoothSerial.available()
+}
+
 module.exports = BluetoothSerial
