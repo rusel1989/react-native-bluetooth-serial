@@ -13,6 +13,8 @@ Officialy this library supports React Native >= 0.25, it may run on older versio
 ```
 <uses-permission android:name="android.permission.BLUETOOTH" />
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 ```
 
 ## Manual installation
@@ -109,12 +111,3 @@ You can use `BluetoothSerial.removeListener(eventName, callback)` to stop listen
 
 ## TODO
 - Make services configurable on ios
-
-
-
-
-
-
-
-
-
