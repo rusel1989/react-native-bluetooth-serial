@@ -232,7 +232,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             Set<BluetoothDevice> bondedDevices = mBluetoothAdapter.getBondedDevices();
 
             for (BluetoothDevice rawDevice : bondedDevices) {
-                WritableMap device = deviceToWritableMap(rawDevice);
+                WritableMap device = deviceToWritableMap(rawDevice, null);
                 deviceList.pushMap(device);
             }
         }
@@ -525,7 +525,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Convert BluetoothDevice into WritableMap
      * @param device Bluetooth device
      */
-    private WritableMap deviceToWritableMap(BluetoothDevice device) {
+    private WritableMap deviceToWritableMap(BluetoothDevice device, Integer rssi) {
         if (D) Log.d(TAG, "device" + device.toString());
 
         WritableMap params = Arguments.createMap();
@@ -533,6 +533,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         params.putString("name", device.getName());
         params.putString("address", device.getAddress());
         params.putString("id", device.getAddress());
+        if (rssi != null) {
+            params.putInt("rssi", rssi);
+        }
 
         if (device.getBluetoothClass() != null) {
             params.putInt("class", device.getBluetoothClass().getDeviceClass());
@@ -650,7 +653,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
                 if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                     BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    WritableMap d = deviceToWritableMap(device);
+                    int rssi = intent.getShortExtra(BluetoothDevice.EXTRA_RSSI, Short.MIN_VALUE);
+                    WritableMap d = deviceToWritableMap(device, rssi);
                     unpairedDevices.pushMap(d);
                 } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                     if (D) Log.d(TAG, "Discovery finished");
