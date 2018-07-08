@@ -162,7 +162,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         // If bluetooth is already enabled resolve promise immediately
         if (mBluetoothAdapter != null && mBluetoothAdapter.isEnabled()) {
             promise.resolve(true);
-        // Start new intent if bluetooth is note enabled
+            // Start new intent if bluetooth is note enabled
         } else {
             Activity activity = getCurrentActivity();
             mEnabledPromise = promise;
@@ -344,6 +344,35 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         promise.resolve(true);
     }
 
+
+    @ReactMethod
+    /**
+     * Start bluetooth server
+     */
+    public void startServer(Promise promise) {
+        try {
+            mBluetoothService.startServer();
+            promise.resolve(true);
+        }
+        catch (Exception e) {
+            promise.reject(new Exception("Could not start server"));
+        }
+    }
+
+    @ReactMethod
+    /**
+     * Stop bluetooth server
+     */
+    public void stopServer(Promise promise) {
+        try {
+            mBluetoothService.stopServer();
+            promise.resolve(true);
+        }
+        catch (Exception e) {
+            promise.reject(new Exception("Could not stop server"));
+        }
+    }
+
     @ReactMethod
     /**
      * Check if device is connected
@@ -476,8 +505,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param data Message
      */
     void onData (String data) {
-        mBuffer.append(data);
-        String completeData = readUntil(this.delimiter);
+        // mBuffer.append(data);
+        String completeData = data;// readUntil(this.delimiter);
         if (completeData != null && completeData.length() > 0) {
             WritableMap params = Arguments.createMap();
             params.putString("data", completeData);
@@ -516,8 +545,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         if (mReactContext.hasActiveCatalystInstance()) {
             if (D) Log.d(TAG, "Sending event: " + eventName);
             mReactContext
-                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
-                .emit(eventName, params);
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit(eventName, params);
         }
     }
 
