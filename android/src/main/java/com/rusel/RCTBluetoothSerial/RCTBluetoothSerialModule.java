@@ -156,6 +156,22 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
+     * Returns Bluetooth's name
+     */
+    public void getBluetoothName(Promise promise) {
+        if (mBluetoothAdapter != null) {
+            String name = mBluetoothAdapter.getName();
+            if(name == null){
+                name = mBluetoothAdapter.getAddress();
+            }
+            promise.resolve(name);
+        } else {
+            promise.resolve(null);
+        }
+    }
+
+    @ReactMethod
+    /**
      * Request user to enable bluetooth
      */
     public void requestEnable(Promise promise) {
