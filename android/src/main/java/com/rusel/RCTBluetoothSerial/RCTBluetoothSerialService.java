@@ -172,7 +172,7 @@ class RCTBluetoothSerialService {
         cancelConnectedThread(); // Cancel any thread currently running a connection
 
         // Start the thread to manage the connection and perform transmissions
-        mConnectedThread = new ConnectedThread(socket);
+        mConnectedThread = new ConnectedThread(socket, mModule.bluetoothInputStreamProcessor);
         mConnectedThread.start();
 
         mModule.onConnectionSuccess("Connected to " + device.getName());
@@ -336,9 +336,9 @@ class RCTBluetoothSerialService {
             // Make a connection to the BluetoothSocket
             try {
                 // This is a blocking call and will only return on a successful connection or an exception
-                if (D) Log.d(TAG,"Connecting to socket...");
+                if (D) Log.d(TAG, "Connecting to socket...");
                 mmSocket.connect();
-                if (D) Log.d(TAG,"Connected");
+                if (D) Log.d(TAG, "Connected");
             } catch (Exception e) {
                 Log.e(TAG, e.toString());
                 mModule.onError(e);
@@ -346,10 +346,10 @@ class RCTBluetoothSerialService {
                 // Some 4.1 devices have problems, try an alternative way to connect
                 // See https://github.com/don/RCTBluetoothSerialModule/issues/89
                 try {
-                    Log.i(TAG,"Trying fallback...");
-                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(mmDevice,1);
+                    Log.i(TAG, "Trying fallback...");
+                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(mmDevice, 1);
                     mmSocket.connect();
-                    Log.i(TAG,"Connected");
+                    Log.i(TAG, "Connected");
                 } catch (Exception e2) {
                     Log.e(TAG, "Couldn't establish a Bluetooth connection.");
                     mModule.onError(e2);
@@ -391,8 +391,9 @@ class RCTBluetoothSerialService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private final IBluetoothInputStreamProcessor mmInputStreamProcessor;
 
-        ConnectedThread(BluetoothSocket socket) {
+        ConnectedThread(BluetoothSocket socket, IBluetoothInputStreamProcessor inputStreamProcessor) {
             if (D) Log.d(TAG, "create ConnectedThread");
             mmSocket = socket;
             InputStream tmpIn = null;
@@ -409,20 +410,14 @@ class RCTBluetoothSerialService {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+            mmInputStreamProcessor = inputStreamProcessor;
         }
 
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
-            byte[] buffer = new byte[1024];
-            int bytes;
-
-            // Keep listening to the InputStream while connected
             while (true) {
                 try {
-                    bytes = mmInStream.read(buffer); // Read from the InputStream
-                    String data = new String(buffer, 0, bytes, "ISO-8859-1");
-
-                    mModule.onData(data); // Send the new data String to the UI Activity
+                    mmInputStreamProcessor.onConnected(this.mmInStream);
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);

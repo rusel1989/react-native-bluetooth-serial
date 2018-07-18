@@ -42,6 +42,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private static final String CONN_LOST = "connectionLost";
     private static final String DEVICE_READ = "read";
     private static final String ERROR = "error";
+    private static final String FILE_PERCENT_LOADED = "filePercentLoaded";
+    private static final String FILE_LOADED = "fileLoaded";
 
     // Other stuff
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
@@ -59,6 +61,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private Promise mDeviceDiscoveryPromise;
     private Promise mPairDevicePromise;
     private String delimiter = "";
+
+    public IBluetoothInputStreamProcessor bluetoothInputStreamProcessor;
 
     public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -156,22 +160,6 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
-     * Returns Bluetooth's name
-     */
-    public void getBluetoothName(Promise promise) {
-        if (mBluetoothAdapter != null) {
-            String name = mBluetoothAdapter.getName();
-            if(name == null){
-                name = mBluetoothAdapter.getAddress();
-            }
-            promise.resolve(name);
-        } else {
-            promise.resolve(null);
-        }
-    }
-
-    @ReactMethod
-    /**
      * Request user to enable bluetooth
      */
     public void requestEnable(Promise promise) {
@@ -235,6 +223,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         promise.resolve(true);
     }
 
+    @ReactMethod
+    public void withFileName(String fileName, Promise promise) {
+        this.bluetoothInputStreamProcessor = new BluetoothFileSaver(fileName, this);
+        promise.resolve(true);
+    }
     /**************************************/
     /** Bluetooth device related methods **/
 
@@ -287,6 +280,13 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         promise.resolve(true);
     }
 
+    @ReactMethod
+    /**
+     * Receive file from bluetooth
+     */
+    public void receiveAsFile(final String fileName) {
+        bluetoothInputStreamProcessor = new BluetoothFileSaver(fileName, this);
+    }
 
     @ReactMethod
     /**
@@ -516,18 +516,15 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         sendEvent(ERROR, params);
     }
 
-    /**
-     * Handle read
-     * @param data Message
-     */
-    void onData (String data) {
-        // mBuffer.append(data);
-        String completeData = data;// readUntil(this.delimiter);
-        if (completeData != null && completeData.length() > 0) {
-            WritableMap params = Arguments.createMap();
-            params.putString("data", completeData);
-            sendEvent(DEVICE_READ, params);
-        }
+
+    void onFileChunkLoaded(double percentLoaded) {
+        WritableMap params = Arguments.createMap();
+        params.putDouble("percentLoaded", percentLoaded);
+        sendEvent(FILE_PERCENT_LOADED, params);
+    }
+
+    void onFileLoaded() {
+        sendEvent(FILE_LOADED, null);
     }
 
     private String readUntil(String delimiter) {
