@@ -1,5 +1,6 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,12 +39,13 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
 
                 int bufferSize = mInputStream.read(buffer);
 
-                if(bufferSize == -1)
-                    continue; // or use break
-
                 int offset = 0;
                 if (mOutputStream == null) {
-                    mOutputStream = new FileOutputStream(mFileName);
+                    File file = new File(mFileName);
+                    if(!file.exists()){
+                        file.createNewFile();
+                    }
+                    mOutputStream = new FileOutputStream(file, false);
                     offset = mHeadersSize;
                     readHeaders(buffer);
                 }

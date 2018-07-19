@@ -39,3 +39,6 @@ jsconfig.json
 *.sublime-workspace
 BluetoothSerialExample/.project
 BluetoothSerialExample/.settings/org.eclipse.buildship.core.prefs
+android/.settings/org.eclipse.buildship.core.prefs
+android/.project
+android/.classpath
