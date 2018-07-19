@@ -28,45 +28,37 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
         this.mModule = module;
         this.mFileName = name;
     }
-
     @Override
-    public void onConnected(InputStream inputStream) {
+    public void onConnected(InputStream inputStream) throws IOException {
         this.mInputStream = inputStream;
         byte[] buffer = new byte[1024];
+        do {
+            int bufferSize = mInputStream.read(buffer);
 
-        try {
-            do {
-
-                int bufferSize = mInputStream.read(buffer);
-
-                int offset = 0;
-                if (mOutputStream == null) {
-                    File file = new File(mFileName);
-                    if(!file.exists()){
-                        file.createNewFile();
-                    }
-                    mOutputStream = new FileOutputStream(file, false);
-                    offset = mHeadersSize;
-                    readHeaders(buffer);
+            int offset = 0;
+            if (mOutputStream == null) {
+                File file = new File(mFileName);
+                if(!file.exists()){
+                    file.createNewFile();
                 }
-
-                mFileSizeLoaded += bufferSize - offset;
-                mOutputStream.write(buffer, offset, bufferSize - offset);
-                if (mModule != null) {
-                    mModule.onFileChunkLoaded(this.getFileLoadPercent());
-                }
-            } while (mFileSize > mFileSizeLoaded);
-            mOutputStream.flush();
-            mOutputStream.close();
-            if (mModule != null) {
-                mModule.onFileLoaded();
+                mOutputStream = new FileOutputStream(file, false);
+                offset = mHeadersSize;
+                readHeaders(buffer);
             }
 
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+            mFileSizeLoaded += bufferSize - offset;
+            mOutputStream.write(buffer, offset, bufferSize - offset);
+            if (mModule != null) {
+                mModule.onFileChunkLoaded(this.getFileLoadPercent());
+            }
+        } while (mFileSize > mFileSizeLoaded);
+             mOutputStream.flush();
+            mOutputStream.close();
+        if (mModule != null) {
+            mModule.onFileLoaded();
         }
     }
-
+    
     private double getFileLoadPercent() {
         return mFileSizeLoaded > 0 ? mFileSizeLoaded * 100 / mFileSize : 0;
     }
