@@ -2,6 +2,7 @@ package com.rusel.RCTBluetoothSerial;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
@@ -11,7 +12,7 @@ import java.util.Arrays;
 // InputStream stream = new ByteArrayInputStream(exampleString.getBytes(StandardCharsets.UTF_8))
 interface IBluetoothInputStreamProcessor {
 
-    void onConnected(InputStream inputStream);
+    void onConnected(InputStream inputStream) throws IOException;
 }
 
 public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
@@ -58,7 +59,7 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
             mModule.onFileLoaded();
         }
     }
-    
+
     private double getFileLoadPercent() {
         return mFileSizeLoaded > 0 ? mFileSizeLoaded * 100 / mFileSize : 0;
     }
