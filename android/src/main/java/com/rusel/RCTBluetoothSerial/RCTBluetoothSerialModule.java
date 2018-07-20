@@ -185,6 +185,19 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
+     * Make device available for discovery
+     */
+    public void makeDeviceDiscoverable(Promise promise) {
+        Activity activity = getCurrentActivity();
+        Intent discoverableIntent =
+                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        activity.startActivity(discoverableIntent);
+        promise.resolve(true);
+    }
+
+    @ReactMethod
+    /**
      * Returns Bluetooth's name
      */
     public void getBluetoothName(Promise promise) {
