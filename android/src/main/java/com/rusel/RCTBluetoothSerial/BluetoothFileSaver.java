@@ -23,23 +23,25 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
     private RCTBluetoothSerialModule mModule = null;
     private long mFileSize;
     private int mFileSizeLoaded;
-    private int mHeadersSize = 4;
+    private final int mHeadersSize = 4;
+    private double mLastFileLoadPercent = 0;
 
     BluetoothFileSaver(String name, RCTBluetoothSerialModule module) {
         this.mModule = module;
         this.mFileName = name;
     }
+
     @Override
     public void onConnected(InputStream inputStream) throws IOException {
         this.mInputStream = inputStream;
         byte[] buffer = new byte[1024];
         do {
             int bufferSize = mInputStream.read(buffer);
-
             int offset = 0;
+
             if (mOutputStream == null) {
                 File file = new File(mFileName);
-                if(!file.exists()){
+                if (!file.exists()) {
                     file.createNewFile();
                 }
                 mOutputStream = new FileOutputStream(file, false);
@@ -49,12 +51,16 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
 
             mFileSizeLoaded += bufferSize - offset;
             mOutputStream.write(buffer, offset, bufferSize - offset);
-            if (mModule != null) {
-                mModule.onFileChunkLoaded(this.getFileLoadPercent());
+            double currentFileLoadPercent = getFileLoadPercent();
+            boolean isLoadedMorePercent = currentFileLoadPercent - mLastFileLoadPercent > 1;
+
+            if (mModule != null && isLoadedMorePercent) {
+                this.mLastFileLoadPercent = currentFileLoadPercent;
+                mModule.onFileChunkLoaded(currentFileLoadPercent);
             }
         } while (mFileSize > mFileSizeLoaded);
-             mOutputStream.flush();
-            mOutputStream.close();
+        mOutputStream.flush();
+        mOutputStream.close();
         if (mModule != null) {
             mModule.onFileLoaded();
         }
@@ -70,10 +76,10 @@ public class BluetoothFileSaver implements IBluetoothInputStreamProcessor {
 
     private void parseFileSize(byte[] headers) {
         byte[] sizeBuffer = Arrays.copyOf(headers, mHeadersSize);
-        this.mFileSize = bytesToLong(sizeBuffer);
+        this.mFileSize = bytesToInt(sizeBuffer);
     }
 
-    private long bytesToLong(byte[] bytes) {
+    private long bytesToInt(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.allocate(mHeadersSize);
         buffer.put(bytes);
         buffer.flip();
