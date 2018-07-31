@@ -59,6 +59,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     // Promises
     private Promise mEnabledPromise;
+    private Promise mDeviceDiscoverablePromise;
     private Promise mConnectedPromise;
     private Promise mDeviceDiscoveryPromise;
     private Promise mPairDevicePromise;
@@ -126,16 +127,16 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         if (requestCode == REQUEST_DISCOVERABLE_BLUETOOTH) {
             if (resultCode == REQUEST_DISCOVERABLE_BLUETOOTH_TIMEOUT) {
                 if (D) Log.d(TAG, "User made Bluetooth discoverable");
-                if (mEnabledPromise != null) {
-                    mEnabledPromise.resolve(true);
+                if (mDeviceDiscoverablePromise != null) {
+                    mDeviceDiscoverablePromise.resolve(true);
                 }
             } else {
                 if (D) Log.d(TAG, "User did *NOT* make Bluetooth discoverable");
-                if (mEnabledPromise != null) {
-                    mEnabledPromise.reject(new Exception("User did not make Bluetooth discoverable" + resultCode));
+                if (mDeviceDiscoverablePromise != null) {
+                    mDeviceDiscoverablePromise.reject(new Exception("User did not make Bluetooth discoverable" + resultCode));
                 }
             }
-            mEnabledPromise = null;
+            mDeviceDiscoverablePromise = null;
         }
     }
 
@@ -206,7 +207,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void makeDeviceDiscoverable(Promise promise) {
         Activity activity = getCurrentActivity();
-        mEnabledPromise = promise;
+        mDeviceDiscoverablePromise = promise;
         Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
         if (activity != null) {
             intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, REQUEST_DISCOVERABLE_BLUETOOTH_TIMEOUT);
@@ -214,8 +215,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         } else {
             Exception e = new Exception("Cannot start activity");
             Log.e(TAG, "Cannot start activity", e);
-            mEnabledPromise.reject(e);
-            mEnabledPromise = null;
+            mDeviceDiscoverablePromise.reject(e);
+            mDeviceDiscoverablePromise = null;
             onError(e);
         }
     }
