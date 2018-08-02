@@ -5,6 +5,12 @@ const BluetoothSerial = NativeModules.BluetoothSerial
 
 const listeners = {};
 
+const removeListenerByName = function(eventName)  {
+  listeners[eventName].forEach(listener => {
+    DeviceEventEmitter.removeListener(eventName, listener)
+  });
+  delete listeners[eventName];
+}
 /**
  * Listen for available events
  * @param  {String} eventName Name of event one of connectionSuccess, connectionLost, data, rawData
@@ -32,11 +38,19 @@ BluetoothSerial.removeListener = (eventName, handler) => {
  * Stop all listening of events
  */
 BluetoothSerial.removeAllRegisterListener = () => {
-  for(var key in listeners) {
-      listeners[key].forEach(listener => {
-        DeviceEventEmitter.removeListener(key, listener)
-      });
-      delete listeners[key];
+  for(var eventName in listeners) {
+    removeListenerByName(eventName);
+  };
+}
+
+/**
+ * Stop all listening of events
+ */
+BluetoothSerial.removeEventNameListeners = (eventName) => {
+  for(var currentEventName in listeners) {
+      if(eventName === currentEventName) {
+        removeListenerByName(currentEventName);
+      }
   };
 }
 
