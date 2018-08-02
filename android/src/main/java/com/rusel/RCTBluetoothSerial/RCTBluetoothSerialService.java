@@ -30,7 +30,7 @@ class RCTBluetoothSerialService {
     private static final String NAME = "RCTBluetoothSerialService";
 
     // UUIDs
-    private static final UUID UUID_SPP = UUID.fromString("fa87c0d0-afac-11de-8a39-0800200c9a67");
+    private static final UUID UUID_SPP = UUID.fromString("fa87c0d0-afac-11de-8a39-0800200c9a66");
 
     // Member fields
     private BluetoothAdapter mAdapter;
