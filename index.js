@@ -48,9 +48,9 @@ BluetoothSerial.removeAllRegisterListener = () => {
  */
 BluetoothSerial.removeEventNameListeners = (eventName) => {
   for(var currentEventName in listeners) {
-    if(eventName === currentEventName) {
-      removeListenerByName(currentEventName);
-    }
+      if(eventName === currentEventName) {
+        removeListenerByName(currentEventName);
+      }
   };
 }
 

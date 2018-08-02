@@ -48,6 +48,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     // Other stuff
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
     private static final int REQUEST_PAIR_DEVICE = 2;
+    private static final int REQUEST_DISCOVERABLE_BLUETOOTH = 3;
+    private static final int REQUEST_DISCOVERABLE_BLUETOOTH_TIMEOUT = 300;
     // Members
     private BluetoothAdapter mBluetoothAdapter;
     private RCTBluetoothSerialService mBluetoothService;
@@ -57,6 +59,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     // Promises
     private Promise mEnabledPromise;
+    private Promise mDeviceDiscoverablePromise;
     private Promise mConnectedPromise;
     private Promise mDeviceDiscoveryPromise;
     private Promise mPairDevicePromise;
@@ -119,6 +122,21 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             } else {
                 if (D) Log.d(TAG, "Pairing failed");
             }
+        }
+
+        if (requestCode == REQUEST_DISCOVERABLE_BLUETOOTH) {
+            if (resultCode == REQUEST_DISCOVERABLE_BLUETOOTH_TIMEOUT) {
+                if (D) Log.d(TAG, "User made Bluetooth discoverable");
+                if (mDeviceDiscoverablePromise != null) {
+                    mDeviceDiscoverablePromise.resolve(true);
+                }
+            } else {
+                if (D) Log.d(TAG, "User did *NOT* make Bluetooth discoverable");
+                if (mDeviceDiscoverablePromise != null) {
+                    mDeviceDiscoverablePromise.reject(new Exception("User did not make Bluetooth discoverable" + resultCode));
+                }
+            }
+            mDeviceDiscoverablePromise = null;
         }
     }
 
@@ -189,11 +207,18 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     public void makeDeviceDiscoverable(Promise promise) {
         Activity activity = getCurrentActivity();
-        Intent discoverableIntent =
-                new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        activity.startActivity(discoverableIntent);
-        promise.resolve(true);
+        mDeviceDiscoverablePromise = promise;
+        Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        if (activity != null) {
+            intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, REQUEST_DISCOVERABLE_BLUETOOTH_TIMEOUT);
+            activity.startActivityForResult(intent, REQUEST_DISCOVERABLE_BLUETOOTH);
+        } else {
+            Exception e = new Exception("Cannot start activity");
+            Log.e(TAG, "Cannot start activity", e);
+            mDeviceDiscoverablePromise.reject(e);
+            mDeviceDiscoverablePromise = null;
+            onError(e);
+        }
     }
 
     @ReactMethod
