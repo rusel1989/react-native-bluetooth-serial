@@ -1,11 +1,13 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
@@ -24,18 +26,23 @@ class RCTBluetoothSerialService {
     // Debugging
     private static final boolean D = true;
 
+    // Name for the SDP record when creating server socket
+    private static final String NAME = "RCTBluetoothSerialService";
+
     // UUIDs
-    private static final UUID UUID_SPP = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+    private static final UUID UUID_SPP = UUID.fromString("fa87c0d0-afac-11de-8a39-0800200c9a66");
 
     // Member fields
     private BluetoothAdapter mAdapter;
     private ConnectThread mConnectThread;
+    private AcceptThread mAcceptThread;
     private ConnectedThread mConnectedThread;
     private RCTBluetoothSerialModule mModule;
     private String mState;
 
     // Constants that indicate the current connection state
     private static final String STATE_NONE = "none";       // we're doing nothing
+    public static final String STATE_LISTEN = "listen";             // now listening for incoming connections
     private static final String STATE_CONNECTING = "connecting"; // now initiating an outgoing connection
     private static final String STATE_CONNECTED = "connected";  // now connected to a remote device
 
@@ -52,6 +59,27 @@ class RCTBluetoothSerialService {
     /********************************************/
     /** Methods available within whole package **/
     /********************************************/
+
+
+    public synchronized void startServer() {
+        Log.d(TAG, "start server");
+
+        // Start the thread to listen on a BluetoothServerSocket
+        if (mAcceptThread == null) {
+            mAcceptThread = new AcceptThread();
+            mAcceptThread.start();
+        }
+    }
+
+    public synchronized void stopServer() {
+        Log.d(TAG, "stop server");
+        if (mAcceptThread != null) {
+            mAcceptThread.cancel();
+            mAcceptThread = null;
+        }
+
+        mState = STATE_NONE;
+    }
 
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
@@ -104,6 +132,7 @@ class RCTBluetoothSerialService {
     synchronized void stop() {
         if (D) Log.d(TAG, "stop");
 
+        cancelAccepthThread();
         cancelConnectThread();
         cancelConnectedThread();
 
@@ -138,11 +167,12 @@ class RCTBluetoothSerialService {
     private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device) {
         if (D) Log.d(TAG, "connected");
 
+        cancelAccepthThread();// Cancel the accept thread because we only want to connect to one device
         cancelConnectThread(); // Cancel any thread attempting to make a connection
         cancelConnectedThread(); // Cancel any thread currently running a connection
 
         // Start the thread to manage the connection and perform transmissions
-        mConnectedThread = new ConnectedThread(socket);
+        mConnectedThread = new ConnectedThread(socket, mModule.bluetoothInputStreamProcessor);
         mConnectedThread.start();
 
         mModule.onConnectionSuccess("Connected to " + device.getName());
@@ -167,6 +197,16 @@ class RCTBluetoothSerialService {
     }
 
     /**
+     * Cancel accept thread
+     */
+    private void cancelAccepthThread () {
+        if (mAcceptThread != null) {
+            mAcceptThread.cancel();
+            mAcceptThread = null;
+        }
+    }
+
+    /**
      * Cancel connect thread
      */
     private void cancelConnectThread () {
@@ -186,6 +226,83 @@ class RCTBluetoothSerialService {
         }
     }
 
+
+    /** This thread runs while listening for incoming connections. It behaves
+     * like a server-side client. It runs until a connection is accepted
+     * (or until cancelled)
+     * */
+    private class AcceptThread extends Thread {
+        // The local server socket
+        private final BluetoothServerSocket mmServerSocket;
+        private String mSocketType;
+
+        public AcceptThread() {
+            BluetoothServerSocket tmp = null;
+
+            // Create a new listening server socket
+            try {
+                tmp = mAdapter.listenUsingRfcommWithServiceRecord(NAME,
+                        UUID_SPP);
+            } catch (IOException e) {
+                Log.e(TAG, "Socket Type: " + mSocketType + "listen() failed", e);
+            }
+            mmServerSocket = tmp;
+            mState = STATE_LISTEN;
+        }
+
+        public void run() {
+            Log.d(TAG, "Socket Type: " + mSocketType +
+                    "BEGIN mAcceptThread" + this);
+            setName("AcceptThread" + mSocketType);
+
+            BluetoothSocket socket = null;
+
+            // Listen to the server socket if we're not connected
+            while (mState != STATE_CONNECTED) {
+                try {
+                    // This is a blocking call and will only return on a
+                    // successful connection or an exception
+                    socket = mmServerSocket.accept();
+                } catch (IOException e) {
+                    Log.e(TAG, "Socket Type: " + mSocketType + "accept() failed", e);
+                    break;
+                }
+
+                // If a connection was accepted
+                if (socket != null) {
+                    synchronized (RCTBluetoothSerialService.this) {
+                        switch (mState) {
+                            case STATE_LISTEN:
+                            case STATE_CONNECTING:
+                                // Situation normal. Start the connected thread.
+                                connectionSuccess(socket, socket.getRemoteDevice());
+                                break;
+                            case STATE_NONE:
+                            case STATE_CONNECTED:
+                                // Either not ready or already connected. Terminate new socket.
+                                try {
+                                    socket.close();
+                                } catch (IOException e) {
+                                    Log.e(TAG, "Could not close unwanted socket", e);
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            Log.i(TAG, "END mAcceptThread, socket Type: " + mSocketType);
+
+        }
+
+        public void cancel() {
+            Log.d(TAG, "Socket Type" + mSocketType + "cancel " + this);
+            try {
+                mmServerSocket.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Socket Type" + mSocketType + "close() of server failed", e);
+            }
+        }
+    }
     /**
      * This thread runs while attempting to make an outgoing connection
      * with a device. It runs straight through; the connection either
@@ -219,9 +336,9 @@ class RCTBluetoothSerialService {
             // Make a connection to the BluetoothSocket
             try {
                 // This is a blocking call and will only return on a successful connection or an exception
-                if (D) Log.d(TAG,"Connecting to socket...");
+                if (D) Log.d(TAG, "Connecting to socket...");
                 mmSocket.connect();
-                if (D) Log.d(TAG,"Connected");
+                if (D) Log.d(TAG, "Connected");
             } catch (Exception e) {
                 Log.e(TAG, e.toString());
                 mModule.onError(e);
@@ -229,10 +346,10 @@ class RCTBluetoothSerialService {
                 // Some 4.1 devices have problems, try an alternative way to connect
                 // See https://github.com/don/RCTBluetoothSerialModule/issues/89
                 try {
-                    Log.i(TAG,"Trying fallback...");
-                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(mmDevice,1);
+                    Log.i(TAG, "Trying fallback...");
+                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(mmDevice, 1);
                     mmSocket.connect();
-                    Log.i(TAG,"Connected");
+                    Log.i(TAG, "Connected");
                 } catch (Exception e2) {
                     Log.e(TAG, "Couldn't establish a Bluetooth connection.");
                     mModule.onError(e2);
@@ -274,8 +391,9 @@ class RCTBluetoothSerialService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private final IBluetoothInputStreamProcessor mmInputStreamProcessor;
 
-        ConnectedThread(BluetoothSocket socket) {
+        ConnectedThread(BluetoothSocket socket, IBluetoothInputStreamProcessor inputStreamProcessor) {
             if (D) Log.d(TAG, "create ConnectedThread");
             mmSocket = socket;
             InputStream tmpIn = null;
@@ -292,20 +410,14 @@ class RCTBluetoothSerialService {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+            mmInputStreamProcessor = inputStreamProcessor;
         }
 
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
-            byte[] buffer = new byte[1024];
-            int bytes;
-
-            // Keep listening to the InputStream while connected
             while (true) {
                 try {
-                    bytes = mmInStream.read(buffer); // Read from the InputStream
-                    String data = new String(buffer, 0, bytes, "ISO-8859-1");
-
-                    mModule.onData(data); // Send the new data String to the UI Activity
+                    mmInputStreamProcessor.onConnected(this.mmInStream);
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);
