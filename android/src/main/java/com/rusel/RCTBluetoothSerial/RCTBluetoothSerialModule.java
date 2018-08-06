@@ -44,6 +44,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private static final String ERROR = "error";
     private static final String FILE_PERCENT_LOADED = "filePercentLoaded";
     private static final String FILE_LOADED = "fileLoaded";
+    private static final String PAIRING_FAILED = "pairingFailed";
 
     // Other stuff
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
@@ -570,11 +571,15 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         sendEvent(ERROR, params);
     }
 
+    void onPairingFailed() {
+        sendEvent(PAIRING_FAILED, null);
+    }
+
 
     void onFileChunkLoaded(double percentLoaded) {
         WritableMap params = Arguments.createMap();
         params.putDouble("percentLoaded", percentLoaded);
-        sendEvent(FILE_PERCENT_LOADED, params);
+        sendEvent(d, params);
     }
 
     void onFileLoaded() {
@@ -718,6 +723,19 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
                             mReactContext.unregisterReceiver(this);
                         } catch (Exception e) {
                             Log.e(TAG, "Cannot unregister receiver", e);
+                            onError(e);
+                        }
+                    } else if (state == BluetoothDevice.BOND_NONE && prevState == BluetoothDevice.BOND_BONDING){
+                        if (D) Log.d(TAG, "Pairing canceled");
+                        if (mPairDevicePromise != null) {
+                            mPairDevicePromise.resolve(true);
+                            mPairDevicePromise = null;
+                        }
+                        try {
+                            onPairingFailed();
+                            mReactContext.unregisterReceiver(this);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Pairing canceled", e);
                             onError(e);
                         }
                     }
