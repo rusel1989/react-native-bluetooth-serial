@@ -266,7 +266,6 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
                         case BluetoothAdapter.SCAN_MODE_NONE:
                             if (D) Log.d(TAG, "Device not discoverable or connectable");
                             sendEvent(DEVICE_NOT_CONNECTABLE, null);
-                            mReactContext.unregisterReceiver(this);
                             break;
                     }
                 }
