@@ -117,13 +117,17 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             mEnabledPromise = null;
         }
         else if (requestCode == REQUEST_MAKE_DISCOVERABLE) {
-            if (resultCode == Activity.RESULT_OK) {
+
+            // For some reason, the result code is the length of time the user permitted discoverability
+            // for...
+            if (resultCode > 0) {
                 if (D) Log.d(TAG, "User allowed the device to be discovered.");
 
                 if (mDeviceDiscoverablePromise != null)
                     mDeviceDiscoverablePromise.resolve(true);
             } else {
                 if (D) Log.d(TAG, "User did not allow the device to be discovered") ;
+                if (D) Log.d(TAG, "Result code was: " + resultCode);
 
                 if (mDeviceDiscoverablePromise != null)
                     mDeviceDiscoverablePromise.reject(new Exception("User did not allow device to be made discoverable"));
