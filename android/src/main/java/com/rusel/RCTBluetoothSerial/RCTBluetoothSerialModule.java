@@ -572,11 +572,13 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle read
      * @param data Message
      */
-    void onData (String data) {
+    void onData (String bluetoothDeviceAddress, String data) {
         mBuffer.append(data);
         String completeData = readUntil(this.delimiter);
         if (completeData != null && completeData.length() > 0) {
             WritableMap params = Arguments.createMap();
+
+            params.putString("remoteAddress", bluetoothDeviceAddress);
             params.putString("data", completeData);
             sendEvent(DEVICE_READ, params);
         }
