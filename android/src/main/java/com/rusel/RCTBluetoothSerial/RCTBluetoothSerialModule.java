@@ -456,52 +456,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     /**
      * Write to device over serial port
      */
-    public void writeToDevice(String message, Promise promise) {
+    public void writeToDevice(String deviceAddress, String message, Promise promise) {
         if (D) Log.d(TAG, "Write " + message);
         byte[] data = Base64.decode(message, Base64.DEFAULT);
-        mBluetoothService.write(data);
+        mBluetoothService.write(deviceAddress, data);
         promise.resolve(true);
-    }
-
-    /**********************/
-    /** Read from device **/
-
-    @ReactMethod
-    /**
-     * Read from device over serial port
-     */
-    public void readFromDevice(Promise promise) {
-        if (D) Log.d(TAG, "Read");
-        int length = mBuffer.length();
-        String data = mBuffer.substring(0, length);
-        mBuffer.delete(0, length);
-        promise.resolve(data);
-    }
-
-    @ReactMethod
-    public void readUntilDelimiter(String delimiter, Promise promise) {
-        promise.resolve(readUntil(delimiter));
-    }
-
-
-    /***********/
-    /** Other **/
-
-    @ReactMethod
-    /**
-     * Clear data in buffer
-     */
-    public void clear(Promise promise) {
-        mBuffer.setLength(0);
-        promise.resolve(true);
-    }
-
-    @ReactMethod
-    /**
-     * Get length of data available to read
-     */
-    public void available(Promise promise) {
-        promise.resolve(mBuffer.length());
     }
 
 
@@ -524,8 +483,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle connection success
      * @param msg Additional message
      */
-    void onConnectionSuccess(String msg) {
+    void onConnectionSuccess(String address, String msg) {
         WritableMap params = Arguments.createMap();
+        params.putString("deviceAddress", address);
         params.putString("message", msg);
         sendEvent(CONN_SUCCESS, null);
         if (mConnectedPromise != null) {
@@ -538,8 +498,10 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * handle connection failure
      * @param msg Additional message
      */
-    void onConnectionFailed(String msg) {
+    void onConnectionFailed(String address, String msg) {
         WritableMap params = Arguments.createMap();
+
+        params.putString("deviceAddress", address);
         params.putString("message", msg);
         sendEvent(CONN_FAILED, null);
         if (mConnectedPromise != null) {
@@ -552,8 +514,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle lost connection
      * @param msg Message
      */
-    void onConnectionLost (String msg) {
+    void onConnectionLost (String address, String msg) {
         WritableMap params = Arguments.createMap();
+        params.putString("deviceAddress", address);
         params.putString("message", msg);
         sendEvent(CONN_LOST, params);
     }
@@ -573,6 +536,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param data Message
      */
     void onData (String bluetoothDeviceAddress, String data) {
+        if (D) Log.d(TAG, "address: " + bluetoothDeviceAddress + " data: " + data);
         mBuffer.append(data);
         String completeData = readUntil(this.delimiter);
         if (completeData != null && completeData.length() > 0) {

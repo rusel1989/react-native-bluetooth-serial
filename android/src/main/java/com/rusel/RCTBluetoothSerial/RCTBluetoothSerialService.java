@@ -1,11 +1,15 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
@@ -25,19 +29,27 @@ class RCTBluetoothSerialService {
     private static final boolean D = true;
 
     // UUIDs
-    private static final UUID UUID_SPP = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
+    private static final UUID UUID_SPP = UUID.fromString("b0b2e90d-0cda-4bb0-8e4b-fb165cd17d48");
 
     // Member fields
     private BluetoothAdapter mAdapter;
-    private ConnectThread mConnectThread;
+
     private ConnectedThread mConnectedThread;
     private RCTBluetoothSerialModule mModule;
-    private String mState;
 
     // Constants that indicate the current connection state
-    private static final String STATE_NONE = "none";       // we're doing nothing
     private static final String STATE_CONNECTING = "connecting"; // now initiating an outgoing connection
     private static final String STATE_CONNECTED = "connected";  // now connected to a remote device
+
+    // A map of the bluetooth devices connected to the server, where the key is the address of the device and the
+    // value is the connected socket which can be used for communication
+    private final Map<String, ConnectedThread> serverDevices = new ConcurrentHashMap<>();
+
+    // A map of the bluetooth devices we are connected to as a client.
+    private final Map<String, ConnectedThread> clientDevices = new ConcurrentHashMap<>();
+
+    private ServerListenThread mServerListenThread = null;
 
     /**
      * Constructor. Prepares a new RCTBluetoothSerialModule session.
@@ -45,7 +57,6 @@ class RCTBluetoothSerialService {
      */
     RCTBluetoothSerialService(RCTBluetoothSerialModule module) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
-        mState = STATE_NONE;
         mModule = module;
     }
 
@@ -60,24 +71,44 @@ class RCTBluetoothSerialService {
     synchronized void connect(BluetoothDevice device) {
         if (D) Log.d(TAG, "connect to: " + device);
 
-        if (mState.equals(STATE_CONNECTING)) {
-            cancelConnectThread(); // Cancel any thread attempting to make a connection
-        }
-
-        cancelConnectedThread(); // Cancel any thread currently running a connection
-
         // Start the thread to connect with the given device
-        mConnectThread = new ConnectThread(device);
-        mConnectThread.start();
-        setState(STATE_CONNECTING);
+        ConnectThread connectThread = new ConnectThread(device);
+        connectThread.start();
     }
 
     /**
-     * Check whether service is connected to device
-     * @return Is connected to device
+     * Creates a server connection to listen for incoming connections.
      */
-    boolean isConnected () {
-        return getState().equals(STATE_CONNECTED);
+    private void startServerSocket(String serviceName, UUID serviceUUID) throws IOException {
+
+        BluetoothServerSocket bluetoothServerSocket = BluetoothAdapter
+                .getDefaultAdapter()
+                .listenUsingRfcommWithServiceRecord(serviceName, serviceUUID);
+
+        // Listen for incoming connections on a new thread and put new entries into the
+        // connected devices map
+        mServerListenThread = new ServerListenThread(bluetoothServerSocket);
+        mServerListenThread.start();
+
+        // TODO: silently do nothing? Or return a promise.reject / throw exception to say already running a server?
+    }
+
+    /**
+     * Stop accepting connections on the server socket.
+     *
+     * @throws IOException
+     */
+    private void stopServerSocket() throws IOException {
+
+        // Close the listen socket;
+        mServerListenThread.closeListenSocket();
+
+        // Stop the thread
+        mServerListenThread.interrupt();
+
+        // Clear the server devices map
+        serverDevices.clear();
+        mServerListenThread = null;
     }
 
     /**
@@ -85,50 +116,41 @@ class RCTBluetoothSerialService {
      * @param out The bytes to write
      * @see ConnectedThread#write(byte[])
      */
-    void write(byte[] out) {
-        if (D) Log.d(TAG, "Write in service, state is " + STATE_CONNECTED);
-        ConnectedThread r; // Create temporary object
+    void write(String deviceAddress, byte[] out) {
 
-        // Synchronize a copy of the ConnectedThread
-        synchronized (this) {
-            if (!isConnected()) return;
-            r = mConnectedThread;
+        // TODO (gordon): wits this aw aboot? Consider race conditions...
+//        // Synchronize a copy of the ConnectedThread
+//        synchronized (this) {
+//            if (!isConnected()) return;
+//            r = mConnectedThread;
+//        }
+
+        ConnectedThread connectedThread = getConnectedDevice(deviceAddress);
+
+        if (connectedThread != null) {
+            connectedThread.write(out);
+        } else {
+            if (D) Log.d(TAG, "Tried to write to " + deviceAddress + " but device not in the connected map");
         }
 
-        r.write(out); // Perform the write unsynchronized
     }
 
     /**
-     * Stop all threads
+     * Returns the device connection thread if we are connected to the device, otherwise returns null.
+     * @param deviceAddress
+     * @return the connected device thread if it exists in the map, otherwise null
      */
-    synchronized void stop() {
-        if (D) Log.d(TAG, "stop");
-
-        cancelConnectThread();
-        cancelConnectedThread();
-
-        setState(STATE_NONE);
+    private ConnectedThread getConnectedDevice(String deviceAddress) {
+        if (clientDevices.containsKey(deviceAddress)) {
+            return clientDevices.get(deviceAddress);
+        } else {
+            return serverDevices.get(deviceAddress);
+        }
     }
 
     /*********************/
     /** Private methods **/
     /*********************/
-
-    /**
-     * Return the current connection state.
-     */
-    private synchronized String getState() {
-        return mState;
-    }
-
-    /**
-     * Set the current state of connection
-     * @param state  An integer defining the current connection state
-     */
-    private synchronized void setState(String state) {
-        if (D) Log.d(TAG, "setState() " + mState + " -> " + state);
-        mState = state;
-    }
 
     /**
      * Start the ConnectedThread to begin managing a Bluetooth connection
@@ -138,52 +160,40 @@ class RCTBluetoothSerialService {
     private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device) {
         if (D) Log.d(TAG, "connected");
 
-        cancelConnectThread(); // Cancel any thread attempting to make a connection
-        cancelConnectedThread(); // Cancel any thread currently running a connection
-
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
 
-        mModule.onConnectionSuccess("Connected to " + device.getName());
-        setState(STATE_CONNECTED);
+        mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + device.getName());
+
+        clientDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
     }
 
 
     /**
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
-    private void connectionFailed() {
-        mModule.onConnectionFailed("Unable to connect to device"); // Send a failure message
-        RCTBluetoothSerialService.this.stop(); // Start the service over to restart listening mode
+    private void connectionFailed(String deviceAddress) {
+        mModule.onConnectionFailed(deviceAddress, "Unable to connect to device"); // Send a failure message
     }
 
     /**
      * Indicate that the connection was lost and notify the UI Activity.
+     * @param address
      */
-    private void connectionLost() {
-        mModule.onConnectionLost("Device connection was lost");  // Send a failure message
-        RCTBluetoothSerialService.this.stop(); // Start the service over to restart listening mode
+    private void connectionLost(String address) {
+        mModule.onConnectionLost(address,"Device connection to " + address +  " was lost");  // Send a failure message
+
+        removeConnectedDevice(address);
     }
 
-    /**
-     * Cancel connect thread
-     */
-    private void cancelConnectThread () {
-        if (mConnectThread != null) {
-            mConnectThread.cancel();
-            mConnectThread = null;
+    private void removeConnectedDevice(String address) {
+        if (clientDevices.containsKey(address)) {
+            clientDevices.remove(address);
+        } else if (serverDevices.containsKey(address)) {
+            serverDevices.remove(address);
         }
-    }
 
-    /**
-     * Cancel connected thread
-     */
-    private void cancelConnectedThread () {
-        if (mConnectedThread != null) {
-            mConnectedThread.cancel();
-            mConnectedThread = null;
-        }
     }
 
     /**
@@ -242,29 +252,57 @@ class RCTBluetoothSerialService {
                         Log.e(TAG, "unable to close() socket during connection failure", e3);
                         mModule.onError(e3);
                     }
-                    connectionFailed();
+                    connectionFailed(mmSocket.getRemoteDevice().getAddress());
                     return;
                 }
             }
 
-            // Reset the ConnectThread because we're done
-            synchronized (RCTBluetoothSerialService.this) {
-                mConnectThread = null;
-            }
-
             connectionSuccess(mmSocket, mmDevice);  // Start the connected thread
 
-        }
-
-        void cancel() {
-            try {
-                mmSocket.close();
-            } catch (Exception e) {
-                Log.e(TAG, "close() of connect socket failed", e);
-                mModule.onError(e);
-            }
+            // We no longer need this thread
+            this.interrupt();
         }
     }
+
+    /**
+     * This thread listens for new incoming
+     */
+    private class ServerListenThread extends Thread {
+
+        private final BluetoothServerSocket serverSocket;
+        private boolean stopped = false;
+
+        ServerListenThread(BluetoothServerSocket serverSocket) {
+            if (D) Log.d(TAG, "Created server listen thread");
+
+            this.serverSocket = serverSocket;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                // Block until there is a new incoming connection, then add it to the connected devices
+                // then block again until there is a new connection. This loop exits when the thread is
+                // stopped and an interrupted exception is thrown
+                try {
+                    BluetoothSocket newConnection = this.serverSocket.accept();
+
+                    // Handle incoming data from the socket
+                    ConnectedThread connectedThread = new ConnectedThread(newConnection);
+                    connectedThread.run();
+
+                    serverDevices.put(newConnection.getRemoteDevice().getAddress(), connectedThread);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        public void closeListenSocket() throws IOException {
+            this.serverSocket.close();
+        }
+    }
+
 
     /**
      * This thread runs during a connection with a remote device.
@@ -311,8 +349,8 @@ class RCTBluetoothSerialService {
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);
-                    connectionLost();
-                    RCTBluetoothSerialService.this.stop(); // Start the service over to restart listening mode
+                    connectionLost(mmSocket.getRemoteDevice().getAddress());
+
                     break;
                 }
             }
