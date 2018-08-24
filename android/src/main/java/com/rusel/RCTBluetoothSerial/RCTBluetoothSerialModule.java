@@ -1,7 +1,10 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Set;
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 import android.app.Activity;
@@ -164,14 +167,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     @Override
     public void onHostDestroy() {
         if (D) Log.d(TAG, "Host destroy");
-        mBluetoothService.stop();
     }
 
     @Override
     public void onCatalystInstanceDestroy() {
         if (D) Log.d(TAG, "Catalyst instance destroyed");
         super.onCatalystInstanceDestroy();
-        mBluetoothService.stop();
     }
 
     /*******************************/
@@ -221,6 +222,14 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         if (mDeviceDiscoverablePromise == null ) {
             Activity currentActivity = getCurrentActivity();
 
+            if (currentActivity == null) {
+                Exception e = new Exception("Cannot make device discoverable because activity is null");
+                Log.e(TAG, "Cannot make device discoverable because activity is null", e);
+                mEnabledPromise.reject(e);
+                mEnabledPromise = null;
+                onError(e);
+            }
+
             mDeviceDiscoverablePromise = promise;
 
             // Make the device discoverable for a limited duration
@@ -232,6 +241,17 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             promise.reject(new Exception("Already awaiting user response on whether the device can be made discoverable."));
         }
 
+    }
+
+    @ReactMethod
+    public void listenForIncomingConnections(String serviceName, String UUID, Promise promise) {
+        UUID sspUuid = java.util.UUID.fromString(UUID);
+        try {
+            mBluetoothService.startServerSocket(serviceName, sspUuid);
+            promise.resolve(true);
+        } catch (IOException e) {
+            promise.reject(new Exception("Could not start bluetooth socket server: " + e.getMessage()));
+        }
     }
 
     /**
@@ -432,23 +452,6 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         }
     }
 
-    @ReactMethod
-    /**
-     * Disconnect from device
-     */
-    public void disconnect(Promise promise) {
-        mBluetoothService.stop();
-        promise.resolve(true);
-    }
-
-    @ReactMethod
-    /**
-     * Check if device is connected
-     */
-    public void isConnected(Promise promise) {
-        promise.resolve(mBluetoothService.isConnected());
-    }
-
     /*********************/
     /** Write to device **/
 
@@ -536,7 +539,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param data Message
      */
     void onData (String bluetoothDeviceAddress, String data) {
+
         if (D) Log.d(TAG, "address: " + bluetoothDeviceAddress + " data: " + data);
+
         mBuffer.append(data);
         String completeData = readUntil(this.delimiter);
         if (completeData != null && completeData.length() > 0) {

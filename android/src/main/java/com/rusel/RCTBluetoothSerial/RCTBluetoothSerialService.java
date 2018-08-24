@@ -79,7 +79,7 @@ class RCTBluetoothSerialService {
     /**
      * Creates a server connection to listen for incoming connections.
      */
-    private void startServerSocket(String serviceName, UUID serviceUUID) throws IOException {
+    public void startServerSocket(String serviceName, UUID serviceUUID) throws IOException {
 
         BluetoothServerSocket bluetoothServerSocket = BluetoothAdapter
                 .getDefaultAdapter()
@@ -285,7 +285,12 @@ class RCTBluetoothSerialService {
                 // then block again until there is a new connection. This loop exits when the thread is
                 // stopped and an interrupted exception is thrown
                 try {
+
+                    if (D) Log.d(TAG, "Awaiting a new incoming connection");
+
                     BluetoothSocket newConnection = this.serverSocket.accept();
+
+                    if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 
                     // Handle incoming data from the socket
                     ConnectedThread connectedThread = new ConnectedThread(newConnection);
