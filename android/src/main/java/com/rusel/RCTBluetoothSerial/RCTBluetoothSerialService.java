@@ -289,6 +289,7 @@ class RCTBluetoothSerialService {
                     if (D) Log.d(TAG, "Awaiting a new incoming connection");
 
                     BluetoothSocket newConnection = this.serverSocket.accept();
+                    connectionSuccess(newConnection, newConnection.getRemoteDevice());
 
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 
@@ -297,9 +298,9 @@ class RCTBluetoothSerialService {
                     connectedThread.run();
 
                     serverDevices.put(newConnection.getRemoteDevice().getAddress(), connectedThread);
-
-                    connectionSuccess(newConnection, newConnection.getRemoteDevice());
                 } catch (IOException e) {
+
+                    if (D) Log.d(TAG, "Error while accepting incoming connection: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
