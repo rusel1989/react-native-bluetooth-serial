@@ -297,6 +297,8 @@ class RCTBluetoothSerialService {
                     connectedThread.run();
 
                     serverDevices.put(newConnection.getRemoteDevice().getAddress(), connectedThread);
+
+                    connectionSuccess(newConnection, newConnection.getRemoteDevice());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
