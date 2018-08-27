@@ -157,14 +157,14 @@ class RCTBluetoothSerialService {
      * @param socket  The BluetoothSocket on which the connection was made
      * @param device  The BluetoothDevice that has been connected
      */
-    private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device) {
+    private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device, boolean isIncoming) {
         if (D) Log.d(TAG, "connected");
 
         // Start the thread to manage the connection and perform transmissions
         mConnectedThread = new ConnectedThread(socket);
         mConnectedThread.start();
 
-        mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + device.getName());
+        mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + device.getName(), isIncoming);
 
         clientDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
     }
@@ -257,7 +257,7 @@ class RCTBluetoothSerialService {
                 }
             }
 
-            connectionSuccess(mmSocket, mmDevice);  // Start the connected thread
+            connectionSuccess(mmSocket, mmDevice, false);  // Start the connected thread
 
             // We no longer need this thread
             this.interrupt();
@@ -289,7 +289,7 @@ class RCTBluetoothSerialService {
                     if (D) Log.d(TAG, "Awaiting a new incoming connection");
 
                     BluetoothSocket newConnection = this.serverSocket.accept();
-                    connectionSuccess(newConnection, newConnection.getRemoteDevice());
+                    connectionSuccess(newConnection, newConnection.getRemoteDevice(), true);
 
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 

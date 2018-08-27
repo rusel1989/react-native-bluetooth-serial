@@ -484,10 +484,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle connection success
      * @param msg Additional message
      */
-    void onConnectionSuccess(String address, String msg) {
+    void onConnectionSuccess(String address, String msg, boolean isIncoming) {
         WritableMap params = Arguments.createMap();
         params.putString("remoteAddress", address);
         params.putString("message", msg);
+        params.putBoolean("isIncoming", isIncoming);
         sendEvent(CONN_SUCCESS, params);
     }
 
