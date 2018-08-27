@@ -262,6 +262,15 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     }
 
     /**
+     * Get the device name.
+     * @return
+     */
+    @ReactMethod
+    public String getDeviceName() {
+        return mBluetoothAdapter.getName();
+    }
+
+    /**
      * Register for events about changes in where this device is discoverable by other bluetooth
      * devices when they're doing device scans, then send events that can be registered to.
      */
