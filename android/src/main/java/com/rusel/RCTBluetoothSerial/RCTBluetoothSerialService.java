@@ -68,11 +68,11 @@ class RCTBluetoothSerialService {
      * Start the ConnectThread to initiate a connection to a remote device.
      * @param device  The BluetoothDevice to connect
      */
-    synchronized void connect(BluetoothDevice device) {
+    synchronized void connect(BluetoothDevice device, String serviceUUID) {
         if (D) Log.d(TAG, "connect to: " + device);
 
         // Start the thread to connect with the given device
-        ConnectThread connectThread = new ConnectThread(device);
+        ConnectThread connectThread = new ConnectThread(device, serviceUUID);
         connectThread.start();
     }
 
@@ -205,13 +205,14 @@ class RCTBluetoothSerialService {
         private BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
 
-        ConnectThread(BluetoothDevice device) {
+        ConnectThread(BluetoothDevice device, String serviceUUID) {
             mmDevice = device;
             BluetoothSocket tmp = null;
 
             // Get a BluetoothSocket for a connection with the given BluetoothDevice
             try {
-                tmp = device.createRfcommSocketToServiceRecord(UUID_SPP);
+                tmp = device.createRfcommSocketToServiceRecord(UUID.fromString(serviceUUID));
+
             } catch (Exception e) {
                 mModule.onError(e);
                 Log.e(TAG, "Socket create() failed", e);
@@ -289,6 +290,7 @@ class RCTBluetoothSerialService {
                     if (D) Log.d(TAG, "Awaiting a new incoming connection");
 
                     BluetoothSocket newConnection = this.serverSocket.accept();
+
                     connectionSuccess(newConnection, newConnection.getRemoteDevice(), true);
 
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
@@ -350,7 +352,7 @@ class RCTBluetoothSerialService {
                 try {
                     bytes = mmInStream.read(buffer); // Read from the InputStream
 
-                    String data = new String(buffer, 0, bytes, "ISO-8859-1");
+                    String data = new String(buffer, 0, bytes, "UTF-8");
                     String address = mmSocket.getRemoteDevice().getAddress();
 
                     mModule.onData(address, data); // Send the new data String to the UI Activity
