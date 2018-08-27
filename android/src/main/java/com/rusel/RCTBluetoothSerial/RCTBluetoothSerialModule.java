@@ -253,6 +253,15 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     }
 
     /**
+     * Changes the device name. Requires the 'bluetooth admin' permission.
+     * @param deviceName the device name
+     */
+    @ReactMethod
+    public void changeDeviceName(String deviceName) {
+        mBluetoothAdapter.setName(deviceName);
+    }
+
+    /**
      * Register for events about changes in where this device is discoverable by other bluetooth
      * devices when they're doing device scans, then send events that can be registered to.
      */
@@ -440,6 +449,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         mConnectedPromise = promise;
         if (mBluetoothAdapter != null) {
             BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(id);
+
             if (device != null) {
                 mBluetoothService.connect(device);
             } else {
