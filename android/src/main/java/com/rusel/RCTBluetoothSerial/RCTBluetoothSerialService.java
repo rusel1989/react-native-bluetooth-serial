@@ -35,7 +35,6 @@ class RCTBluetoothSerialService {
     // Member fields
     private BluetoothAdapter mAdapter;
 
-    private ConnectedThread mConnectedThread;
     private RCTBluetoothSerialModule mModule;
 
     // Constants that indicate the current connection state
@@ -160,11 +159,11 @@ class RCTBluetoothSerialService {
     private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device, boolean isIncoming) {
         if (D) Log.d(TAG, "connected");
 
-        // Start the thread to manage the connection and perform transmissions
-        mConnectedThread = new ConnectedThread(socket);
-        mConnectedThread.start();
-
         mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + device.getName(), isIncoming);
+
+        // Start the thread to manage the connection and perform transmissions
+        ConnectedThread mConnectedThread = new ConnectedThread(socket);
+        mConnectedThread.start();
 
         clientDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
     }
@@ -291,15 +290,12 @@ class RCTBluetoothSerialService {
 
                     BluetoothSocket newConnection = this.serverSocket.accept();
 
+                    newConnection.getRemoteDevice().createBond();
+
                     connectionSuccess(newConnection, newConnection.getRemoteDevice(), true);
 
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 
-                    // Handle incoming data from the socket
-                    ConnectedThread connectedThread = new ConnectedThread(newConnection);
-                    connectedThread.run();
-
-                    serverDevices.put(newConnection.getRemoteDevice().getAddress(), connectedThread);
                 } catch (IOException e) {
 
                     if (D) Log.d(TAG, "Error while accepting incoming connection: " + e.getMessage());
@@ -381,12 +377,5 @@ class RCTBluetoothSerialService {
             }
         }
 
-        void cancel() {
-            try {
-                mmSocket.close();
-            } catch (Exception e) {
-                Log.e(TAG, "close() of connect socket failed", e);
-            }
-        }
     }
 }
