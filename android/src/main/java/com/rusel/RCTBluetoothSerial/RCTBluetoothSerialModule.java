@@ -452,20 +452,20 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
-     * Connect to device by id
+     * Connect to device by id and service UUID
      */
-    public void connect(String id, String serviceUUID, Promise promise) {
+    public void connect(String remoteAddress, String serviceUUID, Promise promise) {
         mConnectedPromise = promise;
         if (mBluetoothAdapter != null) {
-            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(id);
+            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(remoteAddress);
 
             if (device != null) {
                 mBluetoothService.connect(device, serviceUUID);
             } else {
-                promise.reject(new Exception("Could not connect to " + id));
+                promise.reject(new Exception("Could not connect to " + remoteAddress));
             }
         } else {
-            promise.resolve(true);
+            promise.reject(new Exception("todo: understand why this would happen"));
         }
     }
 
@@ -520,7 +520,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
         params.putString("remoteAddress", address);
         params.putString("message", msg);
-        sendEvent(CONN_FAILED, null);
+        sendEvent(CONN_FAILED, params);
         if (mConnectedPromise != null) {
             mConnectedPromise.reject(new Exception(msg));
         }
@@ -600,7 +600,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         WritableMap params = Arguments.createMap();
 
         params.putString("name", device.getName());
-        params.putString("removeAddress", device.getAddress());
+        params.putString("remoteAddress", device.getAddress());
         params.putString("id", device.getAddress());
 
         if (device.getBluetoothClass() != null) {

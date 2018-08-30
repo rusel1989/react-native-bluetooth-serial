@@ -30,8 +30,6 @@ class RCTBluetoothSerialService {
 
     // UUIDs
 
-    private static final UUID UUID_SPP = UUID.fromString("b0b2e90d-0cda-4bb0-8e4b-fb165cd17d48");
-
     // Member fields
     private BluetoothAdapter mAdapter;
 
@@ -252,7 +250,7 @@ class RCTBluetoothSerialService {
                         Log.e(TAG, "unable to close() socket during connection failure", e3);
                         mModule.onError(e3);
                     }
-                    connectionFailed(mmSocket.getRemoteDevice().getAddress());
+                    connectionFailed(mmDevice.getAddress());
                     return;
                 }
             }
