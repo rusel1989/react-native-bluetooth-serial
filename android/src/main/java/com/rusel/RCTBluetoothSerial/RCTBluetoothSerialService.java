@@ -292,12 +292,9 @@ class RCTBluetoothSerialService {
 
                     BluetoothSocket newConnection = this.serverSocket.accept();
 
-                    newConnection.getRemoteDevice().createBond();
-
-                    connectionSuccess(newConnection, true);
-
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 
+                    connectionSuccess(newConnection, true);
                 } catch (IOException e) {
 
                     if (D) Log.d(TAG, "Error while accepting incoming connection: " + e.getMessage());
