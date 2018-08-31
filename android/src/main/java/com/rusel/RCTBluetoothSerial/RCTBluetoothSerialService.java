@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +13,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
+
+import com.facebook.react.bridge.Promise;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
@@ -71,19 +74,27 @@ class RCTBluetoothSerialService {
 
     /**
      * Creates a server connection to listen for incoming connections.
+     * return true if a server was not running and a new server was started, false is a server was already running.
      */
-    public void startServerSocket(String serviceName, UUID serviceUUID) throws IOException {
+    public synchronized boolean startServerSocket(String serviceName, UUID serviceUUID) throws IOException {
 
-        BluetoothServerSocket bluetoothServerSocket = BluetoothAdapter
-                .getDefaultAdapter()
-                .listenUsingRfcommWithServiceRecord(serviceName, serviceUUID);
+        if (mServerListenThread == null) {
+    
+            BluetoothServerSocket bluetoothServerSocket = BluetoothAdapter
+                    .getDefaultAdapter()
+                    .listenUsingRfcommWithServiceRecord(serviceName, serviceUUID);
+    
+            // Listen for incoming connections on a new thread and put new entries into the
+            // connected devices map
+            mServerListenThread = new ServerListenThread(bluetoothServerSocket);
+            mServerListenThread.start();
+            return true;
 
-        // Listen for incoming connections on a new thread and put new entries into the
-        // connected devices map
-        mServerListenThread = new ServerListenThread(bluetoothServerSocket);
-        mServerListenThread.start();
-
-        // TODO: silently do nothing? Or return a promise.reject / throw exception to say already running a server?
+        } else {
+           if (D) Log.d(TAG, "Already listening for incoming connections");
+           return false;
+        }
+        
     }
 
     /**
@@ -91,7 +102,7 @@ class RCTBluetoothSerialService {
      *
      * @throws IOException
      */
-    private void stopServerSocket() throws IOException {
+    public void stopServerSocket() throws IOException {
 
         // Close the listen socket;
         mServerListenThread.closeListenSocket();
@@ -99,10 +110,26 @@ class RCTBluetoothSerialService {
         // Stop the thread
         mServerListenThread.interrupt();
 
-        // Clear the server devices map
-        connectedDevices.clear();
         mServerListenThread = null;
     }
+
+    /**
+     * End all ongoing bluetooth connections
+     * 
+     * @throws IOException
+     */
+    public void endAllConnections() {
+
+        Set<String> devices = connectedDevices.keySet();
+
+        for (String device: devices) {
+            connectedDevices.get(device).interrupt();
+        }
+
+        connectedDevices.clear();
+    }
+
+
 
     /**
      * Write to the ConnectedThread in an unsynchronized manner
@@ -147,11 +174,13 @@ class RCTBluetoothSerialService {
 
     /**
      * Start the ConnectedThread to begin managing a Bluetooth connection if there is not already
-     * an incoming or outgoing connection to the remote bluetooth address. Synchronized to prevent
-     * races if connecting to a remote address multiple times as multiple socket threads negotiating
-     * connections at once are possible.
+     * an incoming or outgoing connection to the remote bluetooth address.
+     *
+     * Synchronized to prevent races if connecting to a remote address multiple times as multiple
+     * socket threads negotiating connections at once are possible.
      * 
      * @param socket  The BluetoothSocket on which the connection was made
+     * @param isIncoming true if the connection is incoming, false if it is outgoing
      */
     private synchronized void connectionSuccess(BluetoothSocket socket, boolean isIncoming) {
         if (D) Log.d(TAG, "connected");
