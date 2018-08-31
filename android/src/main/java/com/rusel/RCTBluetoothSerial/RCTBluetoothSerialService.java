@@ -3,6 +3,7 @@ package com.rusel.RCTBluetoothSerial;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -13,8 +14,6 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
-
-import com.facebook.react.bridge.Promise;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
@@ -43,7 +42,7 @@ class RCTBluetoothSerialService {
     private static final String STATE_CONNECTED = "connected";  // now connected to a remote device
 
     // A map of the bluetooth devices that we have connections open for
-    private final Map<String, ConnectedThread> connectedDevices = new ConcurrentHashMap<>();
+    private final Map<String, ConnectedThread> connectedDevices = new HashMap<>();
 
     private ServerListenThread mServerListenThread = null;
 
@@ -100,9 +99,11 @@ class RCTBluetoothSerialService {
     /**
      * Stop accepting connections on the server socket.
      *
+     * Synchronized for exclusive access to the mServerListenThread object
+     *
      * @throws IOException
      */
-    public void stopServerSocket() throws IOException {
+    public synchronized void stopServerSocket() throws IOException {
 
         // Close the listen socket;
         mServerListenThread.closeListenSocket();
@@ -114,11 +115,13 @@ class RCTBluetoothSerialService {
     }
 
     /**
-     * End all ongoing bluetooth connections
+     * End all ongoing bluetooth connections.
+     *
+     * Synchronized for exclusive access to the connected devices map.
      * 
      * @throws IOException
      */
-    public void endAllConnections() {
+    public synchronized void endAllConnections() {
 
         Set<String> devices = connectedDevices.keySet();
 
@@ -208,13 +211,17 @@ class RCTBluetoothSerialService {
     }
 
     /**
-     * Indicate that the connection was lost and notify the UI Activity.
-     * @param address
+     * Notify the UI thread that the connection to a remote device was lost.
+     *
+     * Synchronized to prevent races if connecting to a remote address multiple times as multiple
+     * socket threads negotiating connections at once are possible.
+     *
+     * @param connectedThread the connection thread.
      */
-    private void connectionLost(String address) {
-        mModule.onConnectionLost(address,"Device connection to " + address +  " was lost");  // Send a failure message
-
+    private synchronized void connectionLost(ConnectedThread connectedThread) {
+        String address = connectedThread.getRemoteAddress();
         removeConnectedDevice(address);
+        mModule.onConnectionLost(address,"Device connection to " + address +  " was lost");  // Send a failure message
     }
 
     private void removeConnectedDevice(String address) {
@@ -375,6 +382,10 @@ class RCTBluetoothSerialService {
             return isIncoming;
         }
 
+        public String getRemoteAddress() {
+            return mmSocket.getRemoteDevice().getAddress();
+        }
+
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
@@ -392,7 +403,7 @@ class RCTBluetoothSerialService {
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);
-                    connectionLost(mmSocket.getRemoteDevice().getAddress());
+                    connectionLost(this);
 
                     break;
                 }
