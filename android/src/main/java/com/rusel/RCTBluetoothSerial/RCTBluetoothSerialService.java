@@ -39,12 +39,8 @@ class RCTBluetoothSerialService {
     private static final String STATE_CONNECTING = "connecting"; // now initiating an outgoing connection
     private static final String STATE_CONNECTED = "connected";  // now connected to a remote device
 
-    // A map of the bluetooth devices connected to the server, where the key is the address of the device and the
-    // value is the connected socket which can be used for communication
-    private final Map<String, ConnectedThread> serverDevices = new ConcurrentHashMap<>();
-
-    // A map of the bluetooth devices we are connected to as a client.
-    private final Map<String, ConnectedThread> clientDevices = new ConcurrentHashMap<>();
+    // A map of the bluetooth devices that we have connections open for
+    private final Map<String, ConnectedThread> connectedDevices = new ConcurrentHashMap<>();
 
     private ServerListenThread mServerListenThread = null;
 
@@ -104,7 +100,7 @@ class RCTBluetoothSerialService {
         mServerListenThread.interrupt();
 
         // Clear the server devices map
-        serverDevices.clear();
+        connectedDevices.clear();
         mServerListenThread = null;
     }
 
@@ -138,10 +134,10 @@ class RCTBluetoothSerialService {
      * @return the connected device thread if it exists in the map, otherwise null
      */
     private ConnectedThread getConnectedDevice(String deviceAddress) {
-        if (clientDevices.containsKey(deviceAddress)) {
-            return clientDevices.get(deviceAddress);
+        if (connectedDevices.containsKey(deviceAddress)) {
+            return connectedDevices.get(deviceAddress);
         } else {
-            return serverDevices.get(deviceAddress);
+            return connectedDevices.get(deviceAddress);
         }
     }
 
@@ -150,20 +146,28 @@ class RCTBluetoothSerialService {
     /*********************/
 
     /**
-     * Start the ConnectedThread to begin managing a Bluetooth connection
+     * Start the ConnectedThread to begin managing a Bluetooth connection if there is not already
+     * an incoming or outgoing connection to the remote bluetooth address. Synchronized to prevent
+     * races if connecting to a remote address multiple times as multiple socket threads negotiating
+     * connections at once are possible.
+     * 
      * @param socket  The BluetoothSocket on which the connection was made
-     * @param device  The BluetoothDevice that has been connected
      */
-    private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device, boolean isIncoming) {
+    private synchronized void connectionSuccess(BluetoothSocket socket, boolean isIncoming) {
         if (D) Log.d(TAG, "connected");
 
-        mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + device.getName(), isIncoming);
-
         // Start the thread to manage the connection and perform transmissions
-        ConnectedThread mConnectedThread = new ConnectedThread(socket);
-        mConnectedThread.start();
 
-        clientDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
+        if (!connectedDevices.containsKey(socket.getRemoteDevice().getAddress())) {
+            ConnectedThread mConnectedThread = new ConnectedThread(socket, isIncoming);
+            connectedDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
+            mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + socket.getRemoteDevice().getName(), isIncoming);
+            mConnectedThread.start();
+        } else {
+            if (D) Log.d(TAG, "Already connected to " + socket.getRemoteDevice().getAddress() + ". Ending new connection attempt.");
+        }
+
+
     }
 
 
@@ -185,10 +189,10 @@ class RCTBluetoothSerialService {
     }
 
     private void removeConnectedDevice(String address) {
-        if (clientDevices.containsKey(address)) {
-            clientDevices.remove(address);
-        } else if (serverDevices.containsKey(address)) {
-            serverDevices.remove(address);
+        if (connectedDevices.containsKey(address)) {
+            connectedDevices.remove(address);
+        } else if (connectedDevices.containsKey(address)) {
+            connectedDevices.remove(address);
         }
 
     }
@@ -255,7 +259,7 @@ class RCTBluetoothSerialService {
                 }
             }
 
-            connectionSuccess(mmSocket, mmDevice, false);  // Start the connected thread
+            connectionSuccess(mmSocket, false);  // Start the connected thread
 
             // We no longer need this thread
             this.interrupt();
@@ -290,7 +294,7 @@ class RCTBluetoothSerialService {
 
                     newConnection.getRemoteDevice().createBond();
 
-                    connectionSuccess(newConnection, newConnection.getRemoteDevice(), true);
+                    connectionSuccess(newConnection, true);
 
                     if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
 
@@ -316,12 +320,14 @@ class RCTBluetoothSerialService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private boolean isIncoming = false;
 
-        ConnectedThread(BluetoothSocket socket) {
+        ConnectedThread(BluetoothSocket socket, boolean isIncoming) {
             if (D) Log.d(TAG, "create ConnectedThread");
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
+            this.isIncoming = isIncoming;
 
             // Get the BluetoothSocket input and output streams
             try {
@@ -334,6 +340,13 @@ class RCTBluetoothSerialService {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+        }
+
+        /**
+         * @return True if this is an incoming connection, false if it is outgoing
+         */
+        public boolean isIncoming() {
+            return isIncoming;
         }
 
         public void run() {
