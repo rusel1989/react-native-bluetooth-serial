@@ -609,6 +609,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             mReactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
+        } else {
+            Log.d(TAG, "Cannot send event as there is no active catalyst instance");
         }
     }
 
