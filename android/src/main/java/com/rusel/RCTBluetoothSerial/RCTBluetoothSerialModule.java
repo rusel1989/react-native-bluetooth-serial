@@ -8,10 +8,12 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
@@ -29,6 +31,7 @@ import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 @SuppressWarnings("unused")
@@ -503,6 +506,21 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         byte[] data = Base64.decode(message, Base64.DEFAULT);
         mBluetoothService.write(deviceAddress, data);
         promise.resolve(true);
+    }
+
+    public void showYesNoDialog(final String message, final DialogInterface.OnClickListener dialogClickListener) {
+        if (D) Log.d(TAG, "Showing yes/no dialog for incoming connection");
+
+        getCurrentActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getCurrentActivity());
+                builder.setMessage(message).setPositiveButton("Yes", dialogClickListener)
+                        .setNegativeButton("No", dialogClickListener).show();
+            }
+        });
+
+
     }
 
 

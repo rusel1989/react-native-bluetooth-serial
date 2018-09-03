@@ -9,10 +9,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.DialogInterface;
 import android.util.Log;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
@@ -326,11 +328,44 @@ class RCTBluetoothSerialService {
 
                     if (D) Log.d(TAG, "Awaiting a new incoming connection");
 
-                    BluetoothSocket newConnection = this.serverSocket.accept();
+                    final BluetoothSocket newConnection = this.serverSocket.accept();
 
-                    if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress());
+                    if (D) Log.d(TAG, "New connection from: " + newConnection.getRemoteDevice().getAddress());
 
-                    connectionSuccess(newConnection, true);
+                    if (newConnection.getRemoteDevice().getBondState() != BluetoothDevice.BOND_BONDED)
+                    {
+                        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which){
+                                    case DialogInterface.BUTTON_POSITIVE:
+                                        if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress() + " bond state " + newConnection.getRemoteDevice().getBondState() );
+                                        
+                                        connectionSuccess(newConnection, true);
+                                        break;
+
+                                    case DialogInterface.BUTTON_NEGATIVE:
+                                        //No button clicked
+                                        if (D) Log.d(TAG, "User did not accept the incoming connection. Closing socket.");
+                                        try {
+                                            newConnection.close();
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                        break;
+                                }
+                            }
+                        };
+
+                        String message = "Accept incoming connection from: " + newConnection.getRemoteDevice().getName() + "(" + newConnection.getRemoteDevice().getAddress() + ")";
+                        mModule.showYesNoDialog(message, dialogClickListener);
+                    } else {
+                        String address = newConnection.getRemoteDevice().getAddress();
+                        if (D) Log.d( TAG, "Accepted incoming connection from " + address + " which has pre-existing bond." );
+                        connectionSuccess(newConnection, true);
+                    }
+
+
                 } catch (IOException e) {
 
                     if (D) Log.d(TAG, "Error while accepting incoming connection: " + e.getMessage());
