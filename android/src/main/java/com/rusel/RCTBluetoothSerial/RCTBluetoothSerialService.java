@@ -3,6 +3,7 @@ package com.rusel.RCTBluetoothSerial;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
+import android.util.Base64;
 import android.util.Log;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
@@ -340,7 +342,7 @@ class RCTBluetoothSerialService {
                                 switch (which){
                                     case DialogInterface.BUTTON_POSITIVE:
                                         if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress() + " bond state " + newConnection.getRemoteDevice().getBondState() );
-                                        
+
                                         connectionSuccess(newConnection, true);
                                         break;
 
@@ -430,8 +432,8 @@ class RCTBluetoothSerialService {
             while (true) {
                 try {
                     bytes = mmInStream.read(buffer); // Read from the InputStream
+                    byte[] data = Arrays.copyOfRange(buffer, 0, bytes);
 
-                    String data = new String(buffer, 0, bytes, "UTF-8");
                     String address = mmSocket.getRemoteDevice().getAddress();
 
                     mModule.onData(address, data); // Send the new data String to the UI Activity
