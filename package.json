@@ -1,6 +1,6 @@
 {
   "name": "react-native-bluetooth-serial",
-  "version": "1.0.0-rc1",
+  "version": "1.0.1-rc1",
   "description": "'Bluetooth serial for react native'",
   "main": "index.js",
   "scripts": {
