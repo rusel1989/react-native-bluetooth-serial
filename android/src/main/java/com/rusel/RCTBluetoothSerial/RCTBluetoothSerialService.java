@@ -426,17 +426,17 @@ class RCTBluetoothSerialService {
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
-            int bytes;
+            int numberOfBytesRead;
 
             // Keep listening to the InputStream while connected
             while (true) {
                 try {
-                    bytes = mmInStream.read(buffer); // Read from the InputStream
-                    byte[] data = Arrays.copyOfRange(buffer, 0, bytes);
-
+                    numberOfBytesRead = mmInStream.read(buffer);
+                    String base64Data = Base64.encodeToString(buffer, 0, numberOfBytesRead, Base64.DEFAULT);
                     String address = mmSocket.getRemoteDevice().getAddress();
 
-                    mModule.onData(address, data); // Send the new data String to the UI Activity
+                    // Send the data to the UI activity to send over the react bridge as an event
+                    mModule.onData(address, base64Data);
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);

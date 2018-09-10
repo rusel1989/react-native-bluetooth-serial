@@ -590,20 +590,17 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     /**
      * Handle read
-     * @param data Message
+     * @param base64data The array of bytes received over the socket, encoded to a Base64 string.
      */
-    void onData (String bluetoothDeviceAddress, byte[] data) {
+    void onData (String bluetoothDeviceAddress, String base64data) {
 
         if (D) Log.d(TAG, "address: " + bluetoothDeviceAddress);
-
-        String encodedData = Base64.encodeToString(data, Base64.DEFAULT);
 
         WritableMap params = Arguments.createMap();
 
         params.putString("remoteAddress", bluetoothDeviceAddress);
-        params.putString("data", encodedData);
+        params.putString("data", base64data);
         sendEvent(DEVICE_READ, params);
-
     }
 
     /*********************/
