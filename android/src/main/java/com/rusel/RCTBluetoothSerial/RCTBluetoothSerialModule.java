@@ -40,6 +40,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     // Debugging
     private static final boolean D = true;
 
+    // Trace: for verbose output (raw messages being sent and received, etc.)
+    private static final boolean T = false;
+
     // Event names
     private static final String BT_ENABLED = "bluetoothEnabled";
     private static final String BT_DISABLED = "bluetoothDisabled";
@@ -391,6 +394,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
             for (BluetoothDevice rawDevice : bondedDevices) {
                 WritableMap device = deviceToWritableMap(rawDevice);
+
+                if (D) Log.d(TAG, "Existing paired device found: " + rawDevice.getAddress());
+
                 deviceList.pushMap(device);
             }
         }
@@ -502,7 +508,8 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Write to device over serial port
      */
     public void writeToDevice(String deviceAddress, String message, Promise promise) {
-        if (D) Log.d(TAG, "Write " + message);
+        if (T) Log.v(TAG, "Write " + "[" + deviceAddress + "] " + message);
+
         byte[] data = Base64.decode(message, Base64.DEFAULT);
         mBluetoothService.write(deviceAddress, data);
         promise.resolve(true);
@@ -594,7 +601,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     void onData (String bluetoothDeviceAddress, String base64data) {
 
-        if (D) Log.d(TAG, "address: " + bluetoothDeviceAddress);
+        if (T) Log.v(TAG, "address: " + bluetoothDeviceAddress);
 
         WritableMap params = Arguments.createMap();
 
@@ -622,7 +629,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     private void sendEvent(String eventName, @Nullable WritableMap params) {
         if (mReactContext.hasActiveCatalystInstance()) {
-            if (D) Log.d(TAG, "Sending event: " + eventName);
+            if (T) Log.v(TAG, "Sending event: " + eventName);
             mReactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
@@ -636,7 +643,6 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param device Bluetooth device
      */
     private WritableMap deviceToWritableMap(BluetoothDevice device) {
-        if (D) Log.d(TAG, "device" + device.toString());
 
         WritableMap params = Arguments.createMap();
 

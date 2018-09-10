@@ -34,6 +34,9 @@ class RCTBluetoothSerialService {
     // Debugging
     private static final boolean D = true;
 
+    // Trace: for verbose output (raw messages being sent and received, etc.)
+    private static final boolean T = false;
+
     // UUIDs
 
     // Member fields
@@ -139,25 +142,19 @@ class RCTBluetoothSerialService {
 
 
     /**
-     * Write to the ConnectedThread in an unsynchronized manner
+     * Write to the ConnectedThread
+     *
      * @param out The bytes to write
      * @see ConnectedThread#write(byte[])
      */
     void write(String deviceAddress, byte[] out) {
-
-        // TODO (gordon): wits this aw aboot? Consider race conditions...
-//        // Synchronize a copy of the ConnectedThread
-//        synchronized (this) {
-//            if (!isConnected()) return;
-//            r = mConnectedThread;
-//        }
 
         ConnectedThread connectedThread = getConnectedDevice(deviceAddress);
 
         if (connectedThread != null) {
             connectedThread.write(out);
         } else {
-            if (D) Log.d(TAG, "Tried to write to " + deviceAddress + " but device not in the connected map");
+            if (D) Log.d(TAG, "Tried to write to " + deviceAddress + " but device not in the connected devices map.");
         }
 
     }
@@ -168,11 +165,7 @@ class RCTBluetoothSerialService {
      * @return the connected device thread if it exists in the map, otherwise null
      */
     private ConnectedThread getConnectedDevice(String deviceAddress) {
-        if (connectedDevices.containsKey(deviceAddress)) {
-            return connectedDevices.get(deviceAddress);
-        } else {
-            return connectedDevices.get(deviceAddress);
-        }
+        return connectedDevices.get(deviceAddress);
     }
 
     /*********************/
@@ -453,8 +446,11 @@ class RCTBluetoothSerialService {
          */
         void write(byte[] buffer) {
             try {
-                String str = new String(buffer, "UTF-8");
-                if (D) Log.d(TAG, "Write in thread " + str);
+                if (T) {
+                    String str = new String(buffer, "UTF-8");
+                    Log.v(TAG, "Write in thread " + str);
+                }
+
                 mmOutStream.write(buffer);
             } catch (Exception e) {
                 Log.e(TAG, "Exception during write", e);
