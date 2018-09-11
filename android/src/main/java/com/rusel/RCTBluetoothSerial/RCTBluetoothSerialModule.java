@@ -2,6 +2,7 @@ package com.rusel.RCTBluetoothSerial;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
 import java.util.Set;
 import java.util.UUID;
 
@@ -75,7 +76,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private Promise mDeviceDiscoverablePromise;
     private String delimiter = "";
 
-    public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
+    public RCTBluetoothSerialModule(ReactApplicationContext reactContext) throws UnknownHostException {
         super(reactContext);
 
         if (D) Log.d(TAG, "Bluetooth module started");

@@ -3,14 +3,13 @@ package com.rusel.RCTBluetoothSerial;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
@@ -36,6 +35,7 @@ class RCTBluetoothSerialService {
 
     // Trace: for verbose output (raw messages being sent and received, etc.)
     private static final boolean T = false;
+    private final WebsocketBridge websocketBridge;
 
     // UUIDs
 
@@ -57,9 +57,14 @@ class RCTBluetoothSerialService {
      * Constructor. Prepares a new RCTBluetoothSerialModule session.
      * @param module Module which handles service events
      */
-    RCTBluetoothSerialService(RCTBluetoothSerialModule module) {
+    RCTBluetoothSerialService(RCTBluetoothSerialModule module) throws UnknownHostException {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mModule = module;
+
+        // Hardcode for now
+        UUID uuid = UUID.fromString("b0b2e90d-0cda-4bb0-8e4b-fb165cd17d48");
+
+        this.websocketBridge = new WebsocketBridge(5666, mAdapter, uuid);
     }
 
     /********************************************/
@@ -336,7 +341,13 @@ class RCTBluetoothSerialService {
                                     case DialogInterface.BUTTON_POSITIVE:
                                         if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress() + " bond state " + newConnection.getRemoteDevice().getBondState() );
 
-                                        connectionSuccess(newConnection, true);
+                                        try {
+                                            websocketBridge.createIncomingServerConnection(newConnection);
+
+                                            connectionSuccess(newConnection, true);
+                                        } catch (URISyntaxException e) {
+                                            e.printStackTrace();
+                                        }
                                         break;
 
                                     case DialogInterface.BUTTON_NEGATIVE:
