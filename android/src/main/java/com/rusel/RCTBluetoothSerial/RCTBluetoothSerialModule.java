@@ -21,6 +21,7 @@ import android.util.Log;
 import android.util.Base64;
 
 import com.facebook.react.bridge.ActivityEventListener;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -505,14 +506,20 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
-     * Write to device over serial port
+     * Write to a connected device by address over serial port, and callback with 'true' once the write
+     * has finished
      */
-    public void writeToDevice(String deviceAddress, String message, Promise promise) {
+    public void writeToDevice(String deviceAddress, String message, Callback successCallback) {
         if (T) Log.v(TAG, "Write " + "[" + deviceAddress + "] " + message);
 
         byte[] data = Base64.decode(message, Base64.DEFAULT);
+
+        // TODO: Do we want to write to a buffer rather than the socket output stream directly so that
+        // we don't have to wait on the socket write finishing before calling back?
         mBluetoothService.write(deviceAddress, data);
-        promise.resolve(true);
+
+        // Allows the client to synchronise the writes
+        successCallback.invoke(true);
     }
 
     public void showYesNoDialog(final String message, final DialogInterface.OnClickListener dialogClickListener) {
