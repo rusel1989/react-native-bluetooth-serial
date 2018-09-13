@@ -21,6 +21,8 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.UUID;
 
+import static android.util.Log.d;
+
 /**
  * Proxies incoming and outgoing bluetooth data over a websocket
  */
@@ -29,11 +31,15 @@ public class WebsocketBridge extends WebSocketServer {
     private final BluetoothAdapter bluetoothAdapter;
     private final UUID serviceUUID;
 
-    public WebsocketBridge(int listenPort, BluetoothAdapter bluetoothAdapter, UUID serviceUUID)
-            throws UnknownHostException {
-        super(new InetSocketAddress(InetAddress.getByName(null), listenPort));
+    public WebsocketBridge(int listenPort, BluetoothAdapter bluetoothAdapter, UUID serviceUUID) {
+        super(listenLocalhost(listenPort));
         this.bluetoothAdapter = bluetoothAdapter;
         this.serviceUUID = serviceUUID;
+    }
+
+    private static InetSocketAddress listenLocalhost(int port){
+
+        return new InetSocketAddress("localhost", port);
     }
 
 
@@ -55,7 +61,7 @@ public class WebsocketBridge extends WebSocketServer {
 
     @Override
     public void onMessage(final WebSocket conn, String message) {
-        Log.d("wsbridge", message);
+        d("wsbridge", message);
 
         UnderlyingConnection connectionDetails = conn.getAttachment();
 
@@ -76,7 +82,7 @@ public class WebsocketBridge extends WebSocketServer {
         } else {
 
             String remoteAddress = message;
-            Log.d("BluetoothSerialBridge", "Trying to connect to " + remoteAddress);
+            d("BluetoothSerialBridge", "Trying to connect to " + remoteAddress);
 
             // The first message is the actual bluetooth device's remote address. We attempt to establish
             // a connection to it.
@@ -97,7 +103,7 @@ public class WebsocketBridge extends WebSocketServer {
                     }
                 }).start();
 
-                Log.d("BluetoothSerialBridge", "Successfully connected to " + remoteAddress);
+                d("BluetoothSerialBridge", "Successfully connected to " + remoteAddress);
 
             } catch (IOException e) {
                 conn.close(404, "Could not connect to bluetooth device " + remoteAddress);
@@ -118,7 +124,7 @@ public class WebsocketBridge extends WebSocketServer {
 
     @Override
     public void onStart() {
-
+        d("wsbridge ",  "websocket bridge started");
     }
 
 
