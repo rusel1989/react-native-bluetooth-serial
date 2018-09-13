@@ -92,6 +92,9 @@ public class WebsocketBridge extends WebSocketServer {
                 final BluetoothSocket socket = remoteDevice.createRfcommSocketToServiceRecord(serviceUUID);
                 connectionDetails.setBluetoothSocket(socket);
 
+                d("wsbridge", "Calling .connect")
+                socket.connect();
+
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
