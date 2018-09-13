@@ -95,11 +95,7 @@ public class WebsocketBridge extends WebSocketServer {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            readFromBluetoothAndSendToSocket(conn, socket.getInputStream());
-                        } catch (IOException e) {
-                            conn.close(400, "Unable to connect to: " + socket.getRemoteDevice().getAddress());
-                        }
+                        readFromBluetoothAndSendToSocket(conn, socket);
                     }
                 }).start();
 
@@ -146,11 +142,7 @@ public class WebsocketBridge extends WebSocketServer {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            readFromBluetoothAndSendToSocket(me, bluetoothSocket.getInputStream());
-                        } catch (IOException e) {
-                            me.close(400, "Bluetooth connection closed to " + bluetoothSocket.getRemoteDevice().getAddress());
-                        }
+                        readFromBluetoothAndSendToSocket(me, bluetoothSocket);
                     }
                 }).start();
             }
