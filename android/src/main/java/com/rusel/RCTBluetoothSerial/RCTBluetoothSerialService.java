@@ -65,6 +65,7 @@ class RCTBluetoothSerialService {
         UUID uuid = UUID.fromString("b0b2e90d-0cda-4bb0-8e4b-fb165cd17d48");
 
         this.websocketBridge = new WebsocketBridge(5666, mAdapter, uuid);
+        this.websocketBridge.start();
     }
 
     /********************************************/

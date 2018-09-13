@@ -55,6 +55,8 @@ public class WebsocketBridge extends WebSocketServer {
 
     @Override
     public void onMessage(final WebSocket conn, String message) {
+        Log.d("wsbridge", message);
+
         UnderlyingConnection connectionDetails = conn.getAttachment();
 
         // The first message is the remote address of the bluetooth device.
