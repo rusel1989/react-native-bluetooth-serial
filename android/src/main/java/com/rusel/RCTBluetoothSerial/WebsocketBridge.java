@@ -8,6 +8,7 @@ import android.util.Log;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.exceptions.WebsocketNotConnectedException;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.server.WebSocketServer;
@@ -18,7 +19,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.UUID;
 
 import static android.util.Log.d;
@@ -203,20 +203,37 @@ public class WebsocketBridge extends WebSocketServer {
         }
     }
 
-    private void readFromBluetoothAndSendToSocket(WebSocket webSocket, InputStream inputStream) {
+    private void readFromBluetoothAndSendToSocket(WebSocket webSocket, BluetoothSocket bluetoothSocket) {
         byte[] buffer = new byte[1024];
         int numberOfBytesRead;
+
+        InputStream inputStream = null;
+        try {
+            inputStream = bluetoothSocket.getInputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+            webSocket.close();
+
+            return;
+        }
 
         // Keep listening to the InputStream while connected
         while (true) {
             try {
                 // Send the incoming data across the bridge
-
+                
                 numberOfBytesRead = inputStream.read(buffer);
                 String base64Data = Base64.encodeToString(buffer, 0, numberOfBytesRead, Base64.DEFAULT);
                 webSocket.send(base64Data);
             } catch (IOException e) {
                 webSocket.close();
+                break;
+            } catch (WebsocketNotConnectedException ex) {
+                try {
+                    bluetoothSocket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 break;
             }
         }
