@@ -106,6 +106,8 @@ public class WebsocketBridge extends WebSocketServer {
 
             } catch (IOException e) {
                 conn.close(404, "Could not connect to bluetooth device " + remoteAddress);
+
+                Log.d("wsbridge", "Exception while connecting to bluetooth socket: " + e.getMessage());
             }
         }
     }
@@ -209,6 +211,8 @@ public class WebsocketBridge extends WebSocketServer {
             e.printStackTrace();
             webSocket.close();
 
+            d("wsbridge", "Error while preparing to read from bluetooth socket: " + e.getMessage());
+
             return;
         }
 
@@ -221,6 +225,8 @@ public class WebsocketBridge extends WebSocketServer {
                 String base64Data = Base64.encodeToString(buffer, 0, numberOfBytesRead, Base64.DEFAULT);
                 webSocket.send(base64Data);
             } catch (IOException e) {
+                d("wsbridge", "Error while reading from bluetooth socket: " + e.getMessage());
+
                 webSocket.close();
                 break;
             } catch (WebsocketNotConnectedException ex) {
