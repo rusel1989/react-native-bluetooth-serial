@@ -1,14 +1,20 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
 import java.util.Set;
+import java.util.UUID;
+
 import javax.annotation.Nullable;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
@@ -16,6 +22,7 @@ import android.util.Log;
 import android.util.Base64;
 
 import com.facebook.react.bridge.ActivityEventListener;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -26,6 +33,7 @@ import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
+import static com.facebook.react.bridge.UiThreadUtil.runOnUiThread;
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 @SuppressWarnings("unused")
@@ -33,6 +41,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     // Debugging
     private static final boolean D = true;
+
+    // Trace: for verbose output (raw messages being sent and received, etc.)
+    private static final boolean T = false;
 
     // Event names
     private static final String BT_ENABLED = "bluetoothEnabled";
@@ -43,24 +54,29 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     private static final String DEVICE_READ = "read";
     private static final String ERROR = "error";
 
-    // Other stuff
+    private static final String DEVICE_DISCOVERABLE = "deviceDiscoverable";
+    private static final String DEVICE_NOT_DISCOVERABLE = "deviceNotDiscoverable";
+    private static final String DEVICE_NOT_CONNECTABLE = "deviceCannotBeConnectedTo";
+
+    // Codes for results from onActivityResult
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
     private static final int REQUEST_PAIR_DEVICE = 2;
+    private static final int REQUEST_MAKE_DISCOVERABLE = 3;
+
     // Members
     private BluetoothAdapter mBluetoothAdapter;
     private RCTBluetoothSerialService mBluetoothService;
     private ReactApplicationContext mReactContext;
-
-    private StringBuffer mBuffer = new StringBuffer();
 
     // Promises
     private Promise mEnabledPromise;
     private Promise mConnectedPromise;
     private Promise mDeviceDiscoveryPromise;
     private Promise mPairDevicePromise;
+    private Promise mDeviceDiscoverablePromise;
     private String delimiter = "";
 
-    public RCTBluetoothSerialModule(ReactApplicationContext reactContext) {
+    public RCTBluetoothSerialModule(ReactApplicationContext reactContext) throws UnknownHostException {
         super(reactContext);
 
         if (D) Log.d(TAG, "Bluetooth module started");
@@ -84,6 +100,7 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
         mReactContext.addActivityEventListener(this);
         mReactContext.addLifecycleEventListener(this);
         registerBluetoothStateReceiver();
+        registerBluetoothDeviceDiscoverabilityStateReceiver();
     }
 
     @Override
@@ -108,8 +125,27 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
             }
             mEnabledPromise = null;
         }
+        else if (requestCode == REQUEST_MAKE_DISCOVERABLE) {
 
-        if (requestCode == REQUEST_PAIR_DEVICE) {
+            // For some reason, the result code is the length of time the user permitted discoverability
+            // for...
+            if (resultCode > 0) {
+                if (D) Log.d(TAG, "User allowed the device to be discovered.");
+
+                if (mDeviceDiscoverablePromise != null)
+                    mDeviceDiscoverablePromise.resolve(true);
+            } else {
+                if (D) Log.d(TAG, "User did not allow the device to be discovered") ;
+                if (D) Log.d(TAG, "Result code was: " + resultCode);
+
+                if (mDeviceDiscoverablePromise != null)
+                    mDeviceDiscoverablePromise.reject(new Exception("User did not allow device to be made discoverable"));
+            }
+
+            // Will be made non-null again on future discoverability requests
+            mDeviceDiscoverablePromise = null;
+        }
+        else if (requestCode == REQUEST_PAIR_DEVICE) {
             if (resultCode == Activity.RESULT_OK) {
                 if (D) Log.d(TAG, "Pairing ok");
             } else {
@@ -137,14 +173,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     @Override
     public void onHostDestroy() {
         if (D) Log.d(TAG, "Host destroy");
-        mBluetoothService.stop();
     }
 
     @Override
     public void onCatalystInstanceDestroy() {
         if (D) Log.d(TAG, "Catalyst instance destroyed");
         super.onCatalystInstanceDestroy();
-        mBluetoothService.stop();
     }
 
     /*******************************/
@@ -177,6 +211,135 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
                 onError(e);
             }
         }
+    }
+
+    /**
+     * Make the device discoverable for connection and pairing by other android devices
+     * for the given amount of time in seconds. The user will be shown a dialog box to
+     * confirm where they want to make the device discoverable. Events will be broadcast
+     * on state changes to the discoverability of this device.
+     *
+     * A promise is returned which will be populated with 'true' if the device was successfully
+     * made discoverable, and will throw an exception if the user rejected the request.
+     */
+    @ReactMethod
+    public void makeDeviceDiscoverable(int timeSeconds, Promise promise) {
+
+        if (mDeviceDiscoverablePromise == null ) {
+            Activity currentActivity = getCurrentActivity();
+
+            if (currentActivity == null) {
+                Exception e = new Exception("Cannot make device discoverable because activity is null");
+                Log.e(TAG, "Cannot make device discoverable because activity is null", e);
+                mEnabledPromise.reject(e);
+                mEnabledPromise = null;
+                onError(e);
+            }
+
+            mDeviceDiscoverablePromise = promise;
+
+            // Make the device discoverable for a limited duration
+            Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+            discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, timeSeconds);
+
+            currentActivity.startActivityForResult(discoverableIntent, REQUEST_MAKE_DISCOVERABLE);
+        } else {
+            promise.reject(new Exception("Already awaiting user response on whether the device can be made discoverable."));
+        }
+
+    }
+
+    @ReactMethod
+    public void listenForIncomingConnections(String serviceName, String UUID, Promise promise) {
+        UUID sspUuid = java.util.UUID.fromString(UUID);
+        try {
+            boolean started = mBluetoothService.startServerSocket(serviceName, sspUuid);
+
+            if (started) {
+                promise.resolve(true);
+            }
+            else {
+                promise.reject(new Throwable("Already listening for incoming connections."));
+            }
+        } catch (IOException e) {
+            if (D) Log.d(TAG, "Unexpected exception while trying to start incoming connections server: " + e.getMessage());
+            promise.reject(new Exception("Could not start bluetooth socket server due to unexpected error: " + e.getMessage()));
+        }
+    }
+
+    @ReactMethod
+    public void stopListeningForNewConnections(Promise promise) {
+        try {
+            mBluetoothService.stopServerSocket();
+            promise.resolve(true);
+        } catch (IOException e) {
+            promise.reject(new Exception(e.getMessage()));
+        }
+    }
+
+    @ReactMethod
+    public void endAllConnections() {
+        mBluetoothService.endAllConnections();
+    }
+
+    /**
+     * Changes the device name. Requires the 'bluetooth admin' permission.
+     * @param deviceName the device name
+     */
+    @ReactMethod
+    public void changeDeviceName(String deviceName) {
+        mBluetoothAdapter.setName(deviceName);
+    }
+
+    /**
+     * Get the device name.
+     * @return
+     */
+    @ReactMethod
+    public String getDeviceName() {
+        return mBluetoothAdapter.getName();
+    }
+
+    /**
+     * Register for events about changes in where this device is discoverable by other bluetooth
+     * devices when they're doing device scans, then send events that can be registered to.
+     */
+    private void registerBluetoothDeviceDiscoverabilityStateReceiver() {
+
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        intentFilter.addAction(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
+
+        final BroadcastReceiver discoverabilityReceiver = new BroadcastReceiver() {
+            public void onReceive(Context context, Intent intent) {
+
+                final String action = intent.getAction();
+
+                if(action.equals(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED)) {
+
+                    int mode = intent.getIntExtra(BluetoothAdapter.EXTRA_SCAN_MODE, BluetoothAdapter.ERROR);
+
+                    switch(mode){
+                        case BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE:
+                            if (D) Log.d(TAG, "Device discoverable");
+                            sendEvent(DEVICE_DISCOVERABLE, null);
+                            break;
+                        case BluetoothAdapter.SCAN_MODE_CONNECTABLE:
+                            if (D) Log.d(TAG, "Device not discoverable");
+                            sendEvent(DEVICE_NOT_DISCOVERABLE, null);
+                            break;
+                        case BluetoothAdapter.SCAN_MODE_NONE:
+                            if (D) Log.d(TAG, "Device not discoverable or connectable");
+                            sendEvent(DEVICE_NOT_CONNECTABLE, null);
+                            break;
+                    }
+                }
+
+            }
+        };
+
+        mReactContext.registerReceiver(discoverabilityReceiver, intentFilter);
     }
 
     @ReactMethod
@@ -233,6 +396,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
             for (BluetoothDevice rawDevice : bondedDevices) {
                 WritableMap device = deviceToWritableMap(rawDevice);
+
+                if (D) Log.d(TAG, "Existing paired device found: " + rawDevice.getAddress());
+
                 deviceList.pushMap(device);
             }
         }
@@ -319,37 +485,21 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
-     * Connect to device by id
+     * Connect to device by id and service UUID
      */
-    public void connect(String id, Promise promise) {
+    public void connect(String remoteAddress, String serviceUUID, Promise promise) {
         mConnectedPromise = promise;
         if (mBluetoothAdapter != null) {
-            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(id);
+            BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(remoteAddress);
+
             if (device != null) {
-                mBluetoothService.connect(device);
+                mBluetoothService.connect(device, serviceUUID);
             } else {
-                promise.reject(new Exception("Could not connect to " + id));
+                promise.reject(new Exception("Could not connect to " + remoteAddress));
             }
         } else {
-            promise.resolve(true);
+            promise.reject(new Exception("todo: understand why this would happen"));
         }
-    }
-
-    @ReactMethod
-    /**
-     * Disconnect from device
-     */
-    public void disconnect(Promise promise) {
-        mBluetoothService.stop();
-        promise.resolve(true);
-    }
-
-    @ReactMethod
-    /**
-     * Check if device is connected
-     */
-    public void isConnected(Promise promise) {
-        promise.resolve(mBluetoothService.isConnected());
     }
 
     /*********************/
@@ -357,54 +507,35 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     @ReactMethod
     /**
-     * Write to device over serial port
+     * Write to a connected device by address over serial port, and callback with 'true' once the write
+     * has finished
      */
-    public void writeToDevice(String message, Promise promise) {
-        if (D) Log.d(TAG, "Write " + message);
+    public void writeToDevice(String deviceAddress, String message, Callback successCallback) {
+        if (T) Log.v(TAG, "Write " + "[" + deviceAddress + "] " + message);
+
         byte[] data = Base64.decode(message, Base64.DEFAULT);
-        mBluetoothService.write(data);
-        promise.resolve(true);
+
+        // TODO: Do we want to write to a buffer rather than the socket output stream directly so that
+        // we don't have to wait on the socket write finishing before calling back?
+        mBluetoothService.write(deviceAddress, data);
+
+        // Allows the client to synchronise the writes
+        successCallback.invoke(true);
     }
 
-    /**********************/
-    /** Read from device **/
+    public void showYesNoDialog(final String message, final DialogInterface.OnClickListener dialogClickListener) {
+        if (D) Log.d(TAG, "Showing yes/no dialog for incoming connection");
 
-    @ReactMethod
-    /**
-     * Read from device over serial port
-     */
-    public void readFromDevice(Promise promise) {
-        if (D) Log.d(TAG, "Read");
-        int length = mBuffer.length();
-        String data = mBuffer.substring(0, length);
-        mBuffer.delete(0, length);
-        promise.resolve(data);
-    }
-
-    @ReactMethod
-    public void readUntilDelimiter(String delimiter, Promise promise) {
-        promise.resolve(readUntil(delimiter));
-    }
+        getCurrentActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getCurrentActivity());
+                builder.setMessage(message).setPositiveButton("Yes", dialogClickListener)
+                        .setNegativeButton("No", dialogClickListener).show();
+            }
+        });
 
 
-    /***********/
-    /** Other **/
-
-    @ReactMethod
-    /**
-     * Clear data in buffer
-     */
-    public void clear(Promise promise) {
-        mBuffer.setLength(0);
-        promise.resolve(true);
-    }
-
-    @ReactMethod
-    /**
-     * Get length of data available to read
-     */
-    public void available(Promise promise) {
-        promise.resolve(mBuffer.length());
     }
 
 
@@ -427,24 +558,24 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle connection success
      * @param msg Additional message
      */
-    void onConnectionSuccess(String msg) {
+    void onConnectionSuccess(String address, String msg, boolean isIncoming) {
         WritableMap params = Arguments.createMap();
+        params.putString("remoteAddress", address);
         params.putString("message", msg);
-        sendEvent(CONN_SUCCESS, null);
-        if (mConnectedPromise != null) {
-            mConnectedPromise.resolve(params);
-        }
-        mConnectedPromise = null;
+        params.putBoolean("isIncoming", isIncoming);
+        sendEvent(CONN_SUCCESS, params);
     }
 
     /**
      * handle connection failure
      * @param msg Additional message
      */
-    void onConnectionFailed(String msg) {
+    void onConnectionFailed(String address, String msg) {
         WritableMap params = Arguments.createMap();
+
+        params.putString("remoteAddress", address);
         params.putString("message", msg);
-        sendEvent(CONN_FAILED, null);
+        sendEvent(CONN_FAILED, params);
         if (mConnectedPromise != null) {
             mConnectedPromise.reject(new Exception(msg));
         }
@@ -455,8 +586,9 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * Handle lost connection
      * @param msg Message
      */
-    void onConnectionLost (String msg) {
+    void onConnectionLost (String address, String msg) {
         WritableMap params = Arguments.createMap();
+        params.putString("remoteAddress", address);
         params.putString("message", msg);
         sendEvent(CONN_LOST, params);
     }
@@ -473,26 +605,17 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
 
     /**
      * Handle read
-     * @param data Message
+     * @param base64data The array of bytes received over the socket, encoded to a Base64 string.
      */
-    void onData (String data) {
-        mBuffer.append(data);
-        String completeData = readUntil(this.delimiter);
-        if (completeData != null && completeData.length() > 0) {
-            WritableMap params = Arguments.createMap();
-            params.putString("data", completeData);
-            sendEvent(DEVICE_READ, params);
-        }
-    }
+    void onData (String bluetoothDeviceAddress, String base64data) {
 
-    private String readUntil(String delimiter) {
-        String data = "";
-        int index = mBuffer.indexOf(delimiter, 0);
-        if (index > -1) {
-            data = mBuffer.substring(0, index + delimiter.length());
-            mBuffer.delete(0, index + delimiter.length());
-        }
-        return data;
+        if (T) Log.v(TAG, "address: " + bluetoothDeviceAddress);
+
+        WritableMap params = Arguments.createMap();
+
+        params.putString("remoteAddress", bluetoothDeviceAddress);
+        params.putString("data", base64data);
+        sendEvent(DEVICE_READ, params);
     }
 
     /*********************/
@@ -514,10 +637,12 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      */
     private void sendEvent(String eventName, @Nullable WritableMap params) {
         if (mReactContext.hasActiveCatalystInstance()) {
-            if (D) Log.d(TAG, "Sending event: " + eventName);
+            if (T) Log.v(TAG, "Sending event: " + eventName);
             mReactContext
                 .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
                 .emit(eventName, params);
+        } else {
+            Log.d(TAG, "Cannot send event as there is no active catalyst instance");
         }
     }
 
@@ -526,12 +651,11 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
      * @param device Bluetooth device
      */
     private WritableMap deviceToWritableMap(BluetoothDevice device) {
-        if (D) Log.d(TAG, "device" + device.toString());
 
         WritableMap params = Arguments.createMap();
 
         params.putString("name", device.getName());
-        params.putString("address", device.getAddress());
+        params.putString("remoteAddress", device.getAddress());
         params.putString("id", device.getAddress());
 
         if (device.getBluetoothClass() != null) {

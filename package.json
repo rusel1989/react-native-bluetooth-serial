@@ -1,6 +1,6 @@
 {
-  "name": "react-native-bluetooth-serial",
-  "version": "1.0.0-rc1",
+  "name": "@happy0/react-native-bluetooth-serial",
+  "version": "1.0.3-rc1",
   "description": "'Bluetooth serial for react native'",
   "main": "index.js",
   "scripts": {
@@ -21,9 +21,7 @@
   },
   "homepage": "https://github.com/rusel1989/react-native-bluetooth-serial#readme",
   "dependencies": {
-    "buffer": "^4.6.0"
-  },
-  "peerDependencies": {
-    "react-native": ">=0.40"
+    "buffer": "^4.6.0",
+    "react-native": "0.55.4"
   }
 }
