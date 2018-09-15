@@ -134,52 +134,67 @@ public class WebsocketBridge extends WebSocketServer {
      *
      * @param bluetoothSocket the underlying bluetooth connection
      */
-    public void createIncomingServerConnection(final BluetoothSocket bluetoothSocket) throws URISyntaxException {
+    public void createIncomingServerConnection(final BluetoothSocket bluetoothSocket) {
+        Log.d("wsbridge", "Incoming bluetooth connection from " + bluetoothSocket.getRemoteDevice().getAddress());
 
-        URI address = new URI("ws://127.0.0.1:5667");
+        try {
+            URI address = new URI("ws://localhost:5667");
 
-        new WebSocketClient(address) {
+            WebSocketClient webSocketClient = new WebSocketClient(address) {
 
-            WebSocketClient me = this;
+                WebSocketClient me = this;
 
-            @Override
-            public void onOpen(ServerHandshake handshakedata) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        readFromBluetoothAndSendToSocket(me, bluetoothSocket);
+                @Override
+                public void onOpen(ServerHandshake handshakedata) {
+                    Log.d("wsbridge", "Successfully opened bridge for incoming connection from " + bluetoothSocket.getRemoteDevice().getAddress());
+
+                    me.setAttachment(bluetoothSocket);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            readFromBluetoothAndSendToSocket(me, bluetoothSocket);
+                        }
+                    }).start();
+                }
+
+                @Override
+                public void onMessage(String message) {
+                    try {
+                        Log.d("wsbridge", message);
+                        bluetoothSocket.getOutputStream().write(Base64.decode(message, Base64.DEFAULT));
+
+                    } catch (IOException e) {
+                        this.close(400, "Connection closed to " + bluetoothSocket.getRemoteDevice().getAddress());
                     }
-                }).start();
-            }
-
-            @Override
-            public void onMessage(String message) {
-                try {
-                    bluetoothSocket.getOutputStream().write(Base64.decode(message, Base64.DEFAULT));
-
-                } catch (IOException e) {
-                    this.close(400, "Connection closed to " + bluetoothSocket.getRemoteDevice().getAddress());
                 }
-            }
 
-            @Override
-            public void onClose(int code, String reason, boolean remote) {
-                try {
-                    bluetoothSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                @Override
+                public void onClose(int code, String reason, boolean remote) {
+                    try {
+                        bluetoothSocket.close();
+                    } catch (IOException e) {
+                        Log.d("wsbridge", "Closed. Reason: " + reason);
+                        e.printStackTrace();
+                    }
                 }
-            }
 
-            @Override
-            public void onError(Exception ex) {
-                try {
-                    bluetoothSocket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                @Override
+                public void onError(Exception ex) {
+                    try {
+                        bluetoothSocket.close();
+                    } catch (IOException e) {
+                        Log.d("wsbridge", "Error: " + ex.getMessage());
+                        e.printStackTrace();
+                    }
                 }
-            }
-        };
+            };
+
+            webSocketClient.connect();
+        } catch (URISyntaxException e) {
+            Log.d("wsbridge", e.getMessage());
+            e.printStackTrace();
+        }
+
 
     }
 

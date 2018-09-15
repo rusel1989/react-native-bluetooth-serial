@@ -178,31 +178,10 @@ class RCTBluetoothSerialService {
     /** Private methods **/
     /*********************/
 
-    /**
-     * Start the ConnectedThread to begin managing a Bluetooth connection if there is not already
-     * an incoming or outgoing connection to the remote bluetooth address.
-     *
-     * Synchronized to prevent races if connecting to a remote address multiple times as multiple
-     * socket threads negotiating connections at once are possible.
-     * 
-     * @param socket  The BluetoothSocket on which the connection was made
-     * @param isIncoming true if the connection is incoming, false if it is outgoing
-     */
     private synchronized void connectionSuccess(BluetoothSocket socket, boolean isIncoming) {
         if (D) Log.d(TAG, "connected");
 
-        // Start the thread to manage the connection and perform transmissions
-
-        if (!connectedDevices.containsKey(socket.getRemoteDevice().getAddress())) {
-            ConnectedThread mConnectedThread = new ConnectedThread(socket, isIncoming);
-            connectedDevices.put(socket.getRemoteDevice().getAddress(), mConnectedThread);
-            mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + socket.getRemoteDevice().getName(), isIncoming);
-            mConnectedThread.start();
-        } else {
-            if (D) Log.d(TAG, "Already connected to " + socket.getRemoteDevice().getAddress() + ". Ending new connection attempt.");
-        }
-
-
+        mModule.onConnectionSuccess(socket.getRemoteDevice().getAddress(),"Connected to " + socket.getRemoteDevice().getName(), isIncoming);
     }
 
 
@@ -342,13 +321,8 @@ class RCTBluetoothSerialService {
                                     case DialogInterface.BUTTON_POSITIVE:
                                         if (D) Log.d(TAG, "Accepted incoming connection from: " + newConnection.getRemoteDevice().getAddress() + " bond state " + newConnection.getRemoteDevice().getBondState() );
 
-                                        try {
-                                            websocketBridge.createIncomingServerConnection(newConnection);
-
-                                            connectionSuccess(newConnection, true);
-                                        } catch (URISyntaxException e) {
-                                            e.printStackTrace();
-                                        }
+                                        websocketBridge.createIncomingServerConnection(newConnection);
+                                        connectionSuccess(newConnection, true);
                                         break;
 
                                     case DialogInterface.BUTTON_NEGATIVE:
@@ -369,7 +343,8 @@ class RCTBluetoothSerialService {
                     } else {
                         String address = newConnection.getRemoteDevice().getAddress();
                         if (D) Log.d( TAG, "Accepted incoming connection from " + address + " which has pre-existing bond." );
-                        connectionSuccess(newConnection, true);
+
+                        websocketBridge.createIncomingServerConnection(newConnection);
                     }
 
 
