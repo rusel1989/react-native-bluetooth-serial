@@ -24,6 +24,6 @@
     "buffer": "^4.6.0"
   },
   "peerDependencies": {
-    "react-native": ">=0.40"
+    "react-native": ">=0.47.0"
   }
 }
