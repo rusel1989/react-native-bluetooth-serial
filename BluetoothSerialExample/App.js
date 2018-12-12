@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   TouchableHighlight,
   View,
-  Modal,
   ActivityIndicator,
   Image
 } from 'react-native'

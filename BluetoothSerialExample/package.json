@@ -1,20 +1,27 @@
 {
   "name": "BluetoothSerialExample",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "rm -fr $TMPDIR/react- && watchman watch-del-all && node node_modules/react-native/local-cli/cli.js start -- --reset-cache"
+    "start": "node node_modules/react-native/local-cli/cli.js start",
+    "test": "jest"
   },
   "dependencies": {
-    "@remobile/react-native-toast": "^1.0.4",
-    "iconv-lite": "^0.4.13",
-    "react": "^15.4.2",
-    "react-native": "^0.40.0",
+    "@remobile/react-native-toast": "1.0.7",
+    "iconv-lite": "0.4.24",
+    "react": "16.5.0",
+    "react-native": "0.57.0",
     "react-native-bluetooth-serial": "file:../",
     "stream": "0.0.2"
   },
-  "engines": {
-    "node": "^6.5.0",
-    "npm": "^3.10.3"
+  "devDependencies": {
+    "@babel/runtime": "7.2.0",
+    "babel-jest": "23.6.0",
+    "jest": "23.6.0",
+    "metro-react-native-babel-preset": "0.50.0",
+    "react-test-renderer": "16.5.0"
+  },
+  "jest": {
+    "preset": "react-native"
   }
 }
