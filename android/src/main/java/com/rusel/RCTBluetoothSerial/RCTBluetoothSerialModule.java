@@ -15,6 +15,12 @@ import android.os.Build;
 import android.util.Log;
 import android.util.Base64;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
+import java.io.ByteArrayOutputStream;
+import zj.com.customize.sdk.Other;
+
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -24,6 +30,7 @@ import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
@@ -89,6 +96,49 @@ public class RCTBluetoothSerialModule extends ReactContextBaseJavaModule impleme
     @Override
     public String getName() {
         return "RCTBluetoothSerial";
+    }
+
+    private Bitmap base64ToBitmap(String b64) {
+        byte[] imageAsBytes = Base64.decode(b64.getBytes(), Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(imageAsBytes, 0, imageAsBytes.length);
+        }
+        
+    private String bitmapToBase64(Bitmap bitmap) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream .toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+    
+    @ReactMethod
+    /**
+     * Write to device over serial port
+     */
+    public void write_img(String imgB64, Promise promise) {
+        String encodeIMG = imgB64;
+        String base64Image = encodeIMG.split(",")[1];
+        Bitmap bmp = base64ToBitmap(base64Image);
+        String encodedImage = bitmapToBase64(bmp);
+        //---------------------------------------------------
+        byte[] data = POS_PrintBMP(bmp, 384, 0);  // --- PRINT IMG FROM BITMAP
+        //---------------------------------------------------
+        mBluetoothService.write(data);
+        promise.resolve(true);
+        // callback.invoke(true);
+    }
+    
+    public static byte[] POS_PrintBMP(Bitmap mBitmap, int nWidth, int nMode) {
+        int width = (nWidth + 7) / 8 * 8;
+        int height = mBitmap.getHeight() * width / mBitmap.getWidth();
+        height = (height + 7) / 8 * 8;
+        Bitmap rszBitmap = mBitmap;
+        if(mBitmap.getWidth() != width) {
+            rszBitmap = Other.resizeImage(mBitmap, width, height);
+        }
+        Bitmap grayBitmap = Other.toGrayscale(rszBitmap);
+        byte[] dithered = Other.thresholdToBWPic(grayBitmap);
+        byte[] data = Other.eachLinePixToCmd(dithered, width, nMode);
+        return data;
     }
 
     @Override
