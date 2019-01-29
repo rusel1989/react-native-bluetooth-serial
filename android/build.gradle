@@ -35,4 +35,5 @@ repositories {
 
 dependencies {
     compile 'com.facebook.react:react-native:+'
+    compile files('libs/btsdk.jar')
 }
