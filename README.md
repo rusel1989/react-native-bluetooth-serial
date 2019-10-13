@@ -37,7 +37,7 @@ Officialy this library supports React Native >= 0.25, it may run on older versio
     ```
 4. Insert the following lines inside the dependencies block in `android/app/build.gradle`:
     ```
-    compile project(':react-native-bluetooth-serial')
+    implementation project(':react-native-bluetooth-serial')
     ```
 
 ## Example
