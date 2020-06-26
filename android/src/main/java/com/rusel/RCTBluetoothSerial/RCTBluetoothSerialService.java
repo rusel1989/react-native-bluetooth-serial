@@ -1,5 +1,6 @@
 package com.rusel.RCTBluetoothSerial;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
@@ -202,7 +203,7 @@ class RCTBluetoothSerialService {
             // Get a BluetoothSocket for a connection with the given BluetoothDevice
             try {
                 tmp = device.createRfcommSocketToServiceRecord(UUID_SPP);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 mModule.onError(e);
                 Log.e(TAG, "Socket create() failed", e);
             }
@@ -222,7 +223,7 @@ class RCTBluetoothSerialService {
                 if (D) Log.d(TAG,"Connecting to socket...");
                 mmSocket.connect();
                 if (D) Log.d(TAG,"Connected");
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.e(TAG, e.toString());
                 mModule.onError(e);
 
@@ -238,7 +239,7 @@ class RCTBluetoothSerialService {
                     mModule.onError(e2);
                     try {
                         mmSocket.close();
-                    } catch (Exception e3) {
+                    } catch (IOException e3) {
                         Log.e(TAG, "unable to close() socket during connection failure", e3);
                         mModule.onError(e3);
                     }
@@ -259,7 +260,7 @@ class RCTBluetoothSerialService {
         void cancel() {
             try {
                 mmSocket.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.e(TAG, "close() of connect socket failed", e);
                 mModule.onError(e);
             }
@@ -285,7 +286,7 @@ class RCTBluetoothSerialService {
             try {
                 tmpIn = socket.getInputStream();
                 tmpOut = socket.getOutputStream();
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.e(TAG, "temp sockets not created", e);
                 mModule.onError(e);
             }
@@ -306,7 +307,7 @@ class RCTBluetoothSerialService {
                     String data = new String(buffer, 0, bytes);
 
                     mModule.onData(data); // Send the new data String to the UI Activity
-                } catch (Exception e) {
+                } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     mModule.onError(e);
                     connectionLost();
@@ -325,7 +326,7 @@ class RCTBluetoothSerialService {
                 String str = new String(buffer, "UTF-8");
                 if (D) Log.d(TAG, "Write in thread " + str);
                 mmOutStream.write(buffer);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);
                 mModule.onError(e);
             }
@@ -334,7 +335,7 @@ class RCTBluetoothSerialService {
         void cancel() {
             try {
                 mmSocket.close();
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.e(TAG, "close() of connect socket failed", e);
             }
         }
