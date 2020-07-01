@@ -1,6 +1,6 @@
 {
-  "name": "react-native-bluetooth-serial-2",
-  "version": "1.0.3",
+  "name": "react-native-bluetooth-serial",
+  "version": "1.0.0-rc1",
   "description": "'Bluetooth serial for react native'",
   "main": "index.js",
   "scripts": {
@@ -8,18 +8,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/geovrodri/react-native-bluetooth-serial.git"
+    "url": "git+https://github.com/rusel1989/react-native-bluetooth-serial.git"
   },
   "keywords": [
     "bluetooth",
     "react-native"
   ],
-  "author": "Geovany Rodrigues <geovanyscv@gmail.com>",
+  "author": "Jakub Martyčák <martycakjakub@gmail.com>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/geovrodri/react-native-bluetooth-serial/issues"
+    "url": "https://github.com/rusel1989/react-native-bluetooth-serial/issues"
   },
-  "homepage": "https://github.com/geovrodri/react-native-bluetooth-serial#readme",
+  "homepage": "https://github.com/rusel1989/react-native-bluetooth-serial#readme",
   "dependencies": {
     "buffer": "^4.6.0"
   },
