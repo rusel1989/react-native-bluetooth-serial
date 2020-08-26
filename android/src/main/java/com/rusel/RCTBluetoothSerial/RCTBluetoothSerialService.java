@@ -10,6 +10,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.util.Log;
 
+import com.datecs.api.printer.ProtocolAdapter;
+
 import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
 
 /**
@@ -17,7 +19,7 @@ import static com.rusel.RCTBluetoothSerial.RCTBluetoothSerialPackage.TAG;
  * connections with other devices. It has a thread that listens for
  * incoming connections, a thread for connecting with a device, and a
  * thread for performing data transmissions when connected.
- *
+ * <p>
  * This code was based on the Android SDK BluetoothChat Sample
  * $ANDROID_SDK/samples/android-17/BluetoothChat
  */
@@ -42,6 +44,7 @@ class RCTBluetoothSerialService {
 
     /**
      * Constructor. Prepares a new RCTBluetoothSerialModule session.
+     *
      * @param module Module which handles service events
      */
     RCTBluetoothSerialService(RCTBluetoothSerialModule module) {
@@ -50,13 +53,14 @@ class RCTBluetoothSerialService {
         mModule = module;
     }
 
-    /********************************************/
-    /** Methods available within whole package **/
-    /********************************************/
+    /*
+    /* Methods available within whole package
+    /*
 
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
-     * @param device  The BluetoothDevice to connect
+     *
+     * @param device The BluetoothDevice to connect
      */
     synchronized void connect(BluetoothDevice device) {
         if (D) Log.d(TAG, "connect to: " + device);
@@ -75,14 +79,16 @@ class RCTBluetoothSerialService {
 
     /**
      * Check whether service is connected to device
+     *
      * @return Is connected to device
      */
-    boolean isConnected () {
+    boolean isConnected() {
         return getState().equals(STATE_CONNECTED);
     }
 
     /**
      * Write to the ConnectedThread in an unsynchronized manner
+     *
      * @param out The bytes to write
      * @see ConnectedThread#write(byte[])
      */
@@ -111,9 +117,9 @@ class RCTBluetoothSerialService {
         setState(STATE_NONE);
     }
 
-    /*********************/
-    /** Private methods **/
-    /*********************/
+    /*
+    /** Private methods
+    /*
 
     /**
      * Return the current connection state.
@@ -124,7 +130,8 @@ class RCTBluetoothSerialService {
 
     /**
      * Set the current state of connection
-     * @param state  An integer defining the current connection state
+     *
+     * @param state An integer defining the current connection state
      */
     private synchronized void setState(String state) {
         if (D) Log.d(TAG, "setState() " + mState + " -> " + state);
@@ -133,8 +140,9 @@ class RCTBluetoothSerialService {
 
     /**
      * Start the ConnectedThread to begin managing a Bluetooth connection
-     * @param socket  The BluetoothSocket on which the connection was made
-     * @param device  The BluetoothDevice that has been connected
+     *
+     * @param socket The BluetoothSocket on which the connection was made
+     * @param device The BluetoothDevice that has been connected
      */
     private synchronized void connectionSuccess(BluetoothSocket socket, BluetoothDevice device) {
         if (D) Log.d(TAG, "connected");
@@ -170,7 +178,7 @@ class RCTBluetoothSerialService {
     /**
      * Cancel connect thread
      */
-    private void cancelConnectThread () {
+    private void cancelConnectThread() {
         if (mConnectThread != null) {
             mConnectThread.cancel();
             mConnectThread = null;
@@ -180,7 +188,7 @@ class RCTBluetoothSerialService {
     /**
      * Cancel connected thread
      */
-    private void cancelConnectedThread () {
+    private void cancelConnectedThread() {
         if (mConnectedThread != null) {
             mConnectedThread.cancel();
             mConnectedThread = null;
@@ -220,9 +228,9 @@ class RCTBluetoothSerialService {
             // Make a connection to the BluetoothSocket
             try {
                 // This is a blocking call and will only return on a successful connection or an exception
-                if (D) Log.d(TAG,"Connecting to socket...");
+                if (D) Log.d(TAG, "Connecting to socket...");
                 mmSocket.connect();
-                if (D) Log.d(TAG,"Connected");
+                if (D) Log.d(TAG, "Connected");
             } catch (IOException e) {
                 Log.e(TAG, e.toString());
                 mModule.onError(e);
@@ -230,10 +238,10 @@ class RCTBluetoothSerialService {
                 // Some 4.1 devices have problems, try an alternative way to connect
                 // See https://github.com/don/RCTBluetoothSerialModule/issues/89
                 try {
-                    Log.i(TAG,"Trying fallback...");
-                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[] {int.class}).invoke(mmDevice,1);
+                    Log.i(TAG, "Trying fallback...");
+                    mmSocket = (BluetoothSocket) mmDevice.getClass().getMethod("createRfcommSocket", new Class[]{int.class}).invoke(mmDevice, 1);
                     mmSocket.connect();
-                    Log.i(TAG,"Connected");
+                    Log.i(TAG, "Connected");
                 } catch (Exception e2) {
                     Log.e(TAG, "Couldn't establish a Bluetooth connection.");
                     mModule.onError(e2);
@@ -284,8 +292,19 @@ class RCTBluetoothSerialService {
 
             // Get the BluetoothSocket input and output streams
             try {
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
+                InputStream inputStream = socket.getInputStream();
+                OutputStream outputStream = socket.getOutputStream();
+                ProtocolAdapter adapter = new ProtocolAdapter(inputStream, outputStream);
+
+                if (adapter.isProtocolEnabled()) {
+                    ProtocolAdapter.Channel channel = adapter.getChannel(ProtocolAdapter.CHANNEL_PRINTER);
+
+                    tmpIn = channel.getInputStream();
+                    tmpOut = channel.getOutputStream();
+                } else {
+                    tmpIn = inputStream;
+                    tmpOut = outputStream;
+                }
             } catch (IOException e) {
                 Log.e(TAG, "temp sockets not created", e);
                 mModule.onError(e);
@@ -319,7 +338,8 @@ class RCTBluetoothSerialService {
 
         /**
          * Write to the connected OutStream.
-         * @param buffer  The bytes to write
+         *
+         * @param buffer The bytes to write
          */
         void write(byte[] buffer) {
             try {
